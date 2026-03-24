@@ -28,7 +28,8 @@ export default class GameScene extends Phaser.Scene {
   // ── create ─────────────────────────────────────────────────
   create() {
     // 1. Generate world data (includes STARTING_OUTPOST placement)
-    const { map, spawnCol, spawnRow } = generateWorld(Date.now() & 0xffffffff);
+    const { map, spawnCol, spawnRow, wanderLeftCol, wanderRightCol } =
+      generateWorld(Date.now() & 0xffffffff);
     this.worldMap = map;
 
     // 2. Render world chunks
@@ -39,9 +40,10 @@ export default class GameScene extends Phaser.Scene {
     const jobOverlay = this.add.graphics().setDepth(5);
     this.jobSystem.setOverlay(jobOverlay);
 
-    // 4. Spawn colonist at the STARTING_OUTPOST doorway
+    // 4. Spawn colonist between hill and building on the safe plateau
     const { x: sx, y: sy } = tileToWorld(spawnCol, spawnRow);
-    this.colonists = [new Colonist(this, sx, sy, map)];
+    const wanderBounds = { left: wanderLeftCol, right: wanderRightCol };
+    this.colonists = [new Colonist(this, sx, sy, map, wanderBounds)];
 
     // 5. HUD
     this.needsUI = new NeedsUI(this, this.colonists);

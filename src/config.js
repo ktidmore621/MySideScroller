@@ -47,14 +47,26 @@ export const TILE_DEF = {
 };
 
 // ── Starting Outpost layout constants ────────────────────────
+//  Layout (left → right): Hill | open ground | Colonist | open ground | Building
+//
+//     ▲▲▲                    ████████████████
+//    ▲▲▲▲▲                   █              █
+//   ▲▲▲▲▲▲▲    [COLONIST]    █              █
+//  █████████████████████████████████████████████  ← solid plateau
+//  █████████████████████████████████████████████  ← solid below
 export const STARTING_OUTPOST = {
-  FLAT_RADIUS:   13,   // half-width of flat spawn zone (26 tiles = 5 beyond each side)
-  SHELTER_W:     16,   // total shelter width  (2 wall + 12 interior + 2 wall)
-  WALL_THICK:     2,   // wall thickness in tiles
-  WALL_H:         6,   // interior height in tiles (colonist=2 + 4 headroom)
-  INTERIOR_W:    12,   // interior floor width
-  DOORWAY_W:      2,   // doorway opening width (matches wall thickness)
-  ROOF_THICK:     2,   // roof thickness in tiles (solid slab)
+  PLATEAU_W:      50,  // total plateau width in tiles (≥ 40)
+  PLATEAU_DEPTH:  10,  // solid fill depth below plateau surface
+  HILL_W:          8,  // hill width in tiles
+  HILL_H:          6,  // hill height above plateau surface
+  SHELTER_W:      16,  // total shelter width  (2 wall + 12 interior + 2 wall)
+  WALL_THICK:      2,  // wall thickness in tiles
+  WALL_H:          6,  // interior height (colonist=2 + 4 headroom)
+  INTERIOR_W:     12,  // interior floor width
+  DOORWAY_W:       2,  // doorway opening width (matches wall thickness)
+  ROOF_THICK:      2,  // roof thickness in tiles
+  HILL_GAP:        3,  // gap tiles between hill right edge and colonist
+  BUILDING_GAP:   10,  // gap tiles between colonist and building left wall
 };
 
 // Physics

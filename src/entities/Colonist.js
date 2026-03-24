@@ -30,9 +30,11 @@ export default class Colonist {
    * @param {number} y  world-pixel y
    * @param {number[][]} map  tile map reference
    */
-  constructor(scene, x, y, map) {
+  constructor(scene, x, y, map, wanderBounds = null) {
     this.scene = scene;
     this.map   = map;
+    // Safe wander zone (tile columns) — colonist stays between hill and building
+    this.wanderBounds = wanderBounds; // { left, right } in tile columns
 
     // ── Physics body (manual arcade) ───────────────────────
     this.vx = 0;
@@ -256,10 +258,15 @@ export default class Colonist {
 
   // ── Pick a random surface wander target ───────────────────
   _pickWanderTarget() {
-    const spread = 5 + Math.floor(Math.random() * 12); // 5-16 tiles away
-    const dir    = Math.random() < 0.5 ? -1 : 1;
     const { col } = worldToTile(this.x, this.y);
-    const newCol  = Phaser.Math.Clamp(col + dir * spread, 2, WORLD_W - 3);
+
+    // Constrain wander to safe zone if bounds are set
+    const minCol = this.wanderBounds ? this.wanderBounds.left  : 2;
+    const maxCol = this.wanderBounds ? this.wanderBounds.right : WORLD_W - 3;
+
+    const spread = 2 + Math.floor(Math.random() * 8); // 2-9 tiles away
+    const dir    = Math.random() < 0.5 ? -1 : 1;
+    const newCol  = Phaser.Math.Clamp(col + dir * spread, minCol, maxCol);
     this.targetX  = newCol * TILE + TILE / 2;
     this.wanderTimer = 3 + Math.random() * 4; // fallback timer
   }

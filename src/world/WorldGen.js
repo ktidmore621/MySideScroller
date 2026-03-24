@@ -131,80 +131,169 @@ export function generateWorld(seed = 42) {
   }
 
   // ================================================================
-  //  STARTING_OUTPOST — flatten terrain & erect a ruined shelter
-  //  "Home is wherever the rubble still has a roof." — Colonist proverb
+  //  STARTING OUTPOST — guaranteed safe spawn zone
+  //
+  //  Layout (left → right):
+  //     ▲▲▲                    ████████████████
+  //    ▲▲▲▲▲                   █              █
+  //   ▲▲▲▲▲▲▲    [COLONIST]    █              █
+  //  █████████████████████████████████████████████  ← solid plateau
+  //  █████████████████████████████████████████████  ← solid below (10 deep)
+  //
+  //  1) Flat solid plateau ≥ 40 tiles wide, 10 tiles deep
+  //  2) Natural hill on left acts as wall
+  //  3) Building sits ON ground to the right (not floating)
+  //  4) Colonist spawns between hill and building
   // ================================================================
   const {
-    FLAT_RADIUS, SHELTER_W, WALL_THICK, WALL_H, DOORWAY_W, ROOF_THICK,
+    PLATEAU_W, PLATEAU_DEPTH, HILL_W, HILL_H,
+    SHELTER_W, WALL_THICK, WALL_H, ROOF_THICK,
+    HILL_GAP, BUILDING_GAP,
   } = STARTING_OUTPOST;
 
-  const outpostCol   = Math.floor(WORLD_W / 2);   // centre of the world
-  const flatLeft     = outpostCol - FLAT_RADIUS;
-  const flatRight    = outpostCol + FLAT_RADIUS - 1;
-  const flatSurface  = surfaceRow[outpostCol];     // canonical ground level
+  // ── Compute key column positions ───────────────────────────
+  const outpostCol   = Math.floor(WORLD_W / 2);      // world centre
+  const flatSurface  = surfaceRow[outpostCol];        // canonical ground row
 
-  // ── 1. Flatten landing zone (5 tiles beyond building each side) ──
-  for (let x = flatLeft; x <= flatRight; x++) {
+  // Colonist placed near the middle of the plateau
+  const spawnCol     = outpostCol;
+
+  // Hill on the left edge of the plateau
+  const hillRight    = spawnCol - HILL_GAP;           // 3 tiles left of colonist
+  const hillLeft     = hillRight - HILL_W + 1;        // 8 tiles wide
+
+  // Building to the right
+  const buildingLeft = spawnCol + BUILDING_GAP;       // 10 tiles right of colonist
+  const buildingRight= buildingLeft + SHELTER_W - 1;  // 16 tiles total
+
+  // Plateau spans from hill left edge to past building, with buffer
+  const plateauLeft  = hillLeft - 2;                  // 2-tile buffer left
+  const plateauRight = Math.max(buildingRight + 4, plateauLeft + PLATEAU_W - 1);
+
+  // ── 1. Flatten & fill solid plateau ────────────────────────
+  //  Clear everything above, make surface solid, fill PLATEAU_DEPTH below
+  for (let x = plateauLeft; x <= plateauRight; x++) {
+    if (x < 0 || x >= WORLD_W) continue;
     surfaceRow[x] = flatSurface;
+
+    // Clear sky above the surface
     for (let y = 0; y < flatSurface; y++) {
-      map[y][x] = TILE_ID.AIR;                    // clear sky above
+      map[y][x] = TILE_ID.AIR;
     }
-    map[flatSurface][x] = TILE_ID.SURFACE_DIRT;   // solid ground
-  }
 
-  // ── 2. Compute shelter bounds ────────────────────────────────
-  const shelterLeft  = outpostCol - Math.floor(SHELTER_W / 2);
-  const shelterRight = shelterLeft + SHELTER_W - 1;
-  const interiorBot  = flatSurface - 1;            // bottom interior row
-  const interiorTop  = flatSurface - WALL_H;       // top interior row
-  const roofBot      = interiorTop - 1;            // bottom of roof slab
-  const roofTop      = roofBot - ROOF_THICK + 1;   // top of roof slab
+    // Solid surface row
+    map[flatSurface][x] = TILE_ID.SURFACE_DIRT;
 
-  // ── 3. Place roof — solid concrete slab (2 tiles thick) ─────
-  for (let y = roofTop; y <= roofBot; y++) {
-    for (let x = shelterLeft; x <= shelterRight; x++) {
-      map[y][x] = TILE_ID.RUIN_WALL;
+    // Fill solid ground beneath the plateau (no caves, no gaps)
+    for (let y = flatSurface + 1; y < flatSurface + PLATEAU_DEPTH && y < WORLD_H; y++) {
+      map[y][x] = TILE_ID.SURFACE_DIRT;
     }
   }
 
-  // ── 4. Place left wall (solid, full height from roof to ground) ──
-  for (let y = roofTop; y <= interiorBot; y++) {
-    for (let x = shelterLeft; x < shelterLeft + WALL_THICK; x++) {
-      map[y][x] = TILE_ID.RUIN_WALL;
-    }
-  }
+  // ── 2. Build the natural hill on the left ──────────────────
+  //  Triangular / stepped hill rising HILL_H tiles above surface.
+  //  Fully solid underneath — no caves or hollows.
+  const hillCentre = (hillLeft + hillRight) / 2;
+  const hillHalfW  = HILL_W / 2;
 
-  // ── 5. Place right wall (doorway carved out, full interior height) ─
-  //  Right wall is solid at roof level, open for the full interior
-  //  height to create a natural-feeling entrance.
-  for (let y = roofTop; y <= interiorBot; y++) {
-    for (let x = shelterRight - WALL_THICK + 1; x <= shelterRight; x++) {
-      const inDoorway = y >= interiorTop && y <= interiorBot;
-      if (!inDoorway) {
-        map[y][x] = TILE_ID.RUIN_WALL;
+  for (let dy = 0; dy < HILL_H; dy++) {
+    // Each row narrows as we go up (pyramidal shape)
+    const rowY      = flatSurface - 1 - dy;          // from just above surface upward
+    const fraction  = 1 - dy / HILL_H;               // 1 at base, 0 at peak
+    const halfSpan  = Math.ceil(hillHalfW * fraction);
+    const rowLeft   = Math.floor(hillCentre - halfSpan + 0.5);
+    const rowRight  = Math.floor(hillCentre + halfSpan - 0.5);
+
+    for (let x = rowLeft; x <= rowRight; x++) {
+      if (x >= 0 && x < WORLD_W && rowY >= 0) {
+        map[rowY][x] = TILE_ID.SURFACE_ROCK;         // rocky hill material
       }
     }
   }
 
-  // ── 6. Clear interior (breathable air inside the ruin) ───────
+  // Fill hill columns solid all the way down through the plateau depth
+  for (let x = hillLeft; x <= hillRight; x++) {
+    if (x < 0 || x >= WORLD_W) continue;
+    for (let y = flatSurface - 1; y >= flatSurface - HILL_H && y >= 0; y--) {
+      // Fill under each hill row solidly (no internal gaps)
+      if (map[y][x] === TILE_ID.AIR) {
+        map[y][x] = TILE_ID.SURFACE_ROCK;
+      }
+    }
+  }
+
+  // ── 3. Place building ON the plateau surface (to the right) ─
+  //  Bottom wall tiles sit directly ON flatSurface row.
+  //  Left wall has open doorway facing colonist.
+  //  Right wall is solid.
+  const interiorBot  = flatSurface - 1;               // bottom interior row
+  const interiorTop  = flatSurface - WALL_H;          // top interior row
+  const roofBot      = interiorTop - 1;               // bottom of roof slab
+  const roofTop      = roofBot - ROOF_THICK + 1;      // top of roof slab
+
+  // 3a. Roof — solid concrete slab
+  for (let y = roofTop; y <= roofBot; y++) {
+    for (let x = buildingLeft; x <= buildingRight; x++) {
+      if (x >= 0 && x < WORLD_W) map[y][x] = TILE_ID.RUIN_WALL;
+    }
+  }
+
+  // 3b. Left wall (doorway facing colonist — open for full interior height)
+  for (let y = roofTop; y <= interiorBot; y++) {
+    for (let x = buildingLeft; x < buildingLeft + WALL_THICK; x++) {
+      const inDoorway = y >= interiorTop && y <= interiorBot;
+      if (!inDoorway) {
+        if (x >= 0 && x < WORLD_W) map[y][x] = TILE_ID.RUIN_WALL;
+      }
+    }
+  }
+
+  // 3c. Right wall (solid, full height from roof to ground)
+  for (let y = roofTop; y <= interiorBot; y++) {
+    for (let x = buildingRight - WALL_THICK + 1; x <= buildingRight; x++) {
+      if (x >= 0 && x < WORLD_W) map[y][x] = TILE_ID.RUIN_WALL;
+    }
+  }
+
+  // 3d. Back wall (bottom row — sits ON the surface, connecting left & right walls)
+  for (let x = buildingLeft; x <= buildingRight; x++) {
+    if (x >= 0 && x < WORLD_W) map[flatSurface][x] = TILE_ID.RUIN_WALL;
+  }
+
+  // 3e. Clear interior air space
   for (let y = interiorTop; y <= interiorBot; y++) {
-    for (let x = shelterLeft + WALL_THICK; x <= shelterRight - WALL_THICK; x++) {
-      map[y][x] = TILE_ID.AIR;
+    for (let x = buildingLeft + WALL_THICK; x <= buildingRight - WALL_THICK; x++) {
+      if (x >= 0 && x < WORLD_W) map[y][x] = TILE_ID.AIR;
     }
   }
-  // Also clear the air above the roof inside the flat zone
+
+  // 3f. Clear sky above the building
   for (let y = 0; y < roofTop; y++) {
-    for (let x = shelterLeft; x <= shelterRight; x++) {
-      map[y][x] = TILE_ID.AIR;
+    for (let x = buildingLeft; x <= buildingRight; x++) {
+      if (x >= 0 && x < WORLD_W) map[y][x] = TILE_ID.AIR;
     }
   }
 
-  // ── 7. Record spawn point for GameScene ──────────────────────
-  //  Colonist materialises just outside the doorway, facing the entrance.
-  const spawnCol = shelterRight + 1;
-  const spawnRow = flatSurface - 2;               // standing on the ground
+  // ── 4. Ensure NO caves/craters exist within the plateau zone ─
+  //  Re-fill any holes that the earlier cave carving may have punched
+  //  into the plateau depth zone.
+  for (let x = plateauLeft; x <= plateauRight; x++) {
+    if (x < 0 || x >= WORLD_W) continue;
+    for (let y = flatSurface + 1; y < flatSurface + PLATEAU_DEPTH && y < WORLD_H; y++) {
+      if (map[y][x] === TILE_ID.AIR) {
+        map[y][x] = TILE_ID.SURFACE_DIRT;
+      }
+    }
+  }
 
-  return { map, surfaceRow, spawnCol, spawnRow };
+  // ── 5. Record spawn point ──────────────────────────────────
+  const spawnRow = flatSurface - 2;                   // standing on ground
+
+  // Export wander bounds so colonist stays in the safe zone
+  const wanderLeftCol  = hillRight + 1;               // just right of the hill
+  const wanderRightCol = buildingLeft - 1;            // just left of the building
+
+  return { map, surfaceRow, spawnCol, spawnRow, wanderLeftCol, wanderRightCol };
 }
 
 // ── Utility: pixel coords for tile ──────────────────────────
