@@ -48,12 +48,13 @@ export const TILE_DEF = {
 
 // ── Starting Outpost layout constants ────────────────────────
 export const STARTING_OUTPOST = {
-  FLAT_RADIUS:   10,   // half-width of guaranteed flat spawn zone (20 tiles)
-  SHELTER_W:     14,   // total shelter width  (3 wall + 8 interior + 3 wall)
-  WALL_THICK:     3,   // wall thickness in tiles
-  WALL_H:         2,   // wall height in tiles (above ground)
-  INTERIOR_W:     8,   // interior floor width
-  DOORWAY_W:      3,   // doorway opening width (full wall removed)
+  FLAT_RADIUS:   13,   // half-width of flat spawn zone (26 tiles = 5 beyond each side)
+  SHELTER_W:     16,   // total shelter width  (2 wall + 12 interior + 2 wall)
+  WALL_THICK:     2,   // wall thickness in tiles
+  WALL_H:         6,   // interior height in tiles (colonist=2 + 4 headroom)
+  INTERIOR_W:    12,   // interior floor width
+  DOORWAY_W:      2,   // doorway opening width (matches wall thickness)
+  ROOF_THICK:     2,   // roof thickness in tiles (solid slab)
 };
 
 // Physics
