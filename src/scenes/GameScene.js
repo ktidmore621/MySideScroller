@@ -48,10 +48,9 @@ export default class GameScene extends Phaser.Scene {
     // 5. HUD
     this.needsUI = new NeedsUI(this, this.colonists);
 
-    // 6. Camera setup
+    // 6. Camera setup — centre on colonist spawn
     this.cameras.main.setBounds(0, 0, WORLD_PX_W, WORLD_PX_H);
-    this.cameras.main.scrollX = sx - this.scale.width  / 2;
-    this.cameras.main.scrollY = sy - this.scale.height / 2;
+    this.cameras.main.centerOn(sx, sy);
 
     // 7. Touch drag camera
     this._setupTouchCamera();
@@ -132,6 +131,9 @@ export default class GameScene extends Phaser.Scene {
     // Dampen inertia
     this._drag.velX *= 0.88;
     this._drag.velY *= 0.88;
+    // Zero out tiny residual velocity to prevent drift
+    if (Math.abs(this._drag.velX) < 0.1) this._drag.velX = 0;
+    if (Math.abs(this._drag.velY) < 0.1) this._drag.velY = 0;
     this.cameras.main.scrollX += this._drag.velX;
     this.cameras.main.scrollY += this._drag.velY;
   }
