@@ -9,8 +9,6 @@ import GameScene  from './scenes/GameScene.js';
 
 const config = {
   type: Phaser.AUTO,
-  width:  window.innerWidth,
-  height: window.innerHeight,
   backgroundColor: '#0a0a12',
   physics: {
     default: 'arcade',
@@ -26,9 +24,8 @@ const config = {
     antialias: false,
   },
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
-    orientation: Phaser.Scale.LANDSCAPE,
   },
   input: {
     activePointers: 2, // support two-finger gestures
@@ -36,8 +33,3 @@ const config = {
 };
 
 const game = new Phaser.Game(config);
-
-// Hot-resize support (browser / dev tools)
-window.addEventListener('resize', () => {
-  game.scale.resize(window.innerWidth, window.innerHeight);
-});
