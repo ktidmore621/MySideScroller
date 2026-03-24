@@ -4,10 +4,10 @@
 //
 //  Layer layout (top → bottom):
 //    0  – SKY_TOP        : open sky / vacuum
-//    60 – SURFACE_TOP    : wasteland surface (ash-soil, rubble)
-//   120 – UNDERGROUND_TOP: packed earth, clay veins
-//   300 – DEEP_TOP       : hard stone, iron ore pockets
-//   599 – BOTTOM row     : indestructible bedrock
+//    20 – SURFACE_TOP    : wasteland surface (ash-soil, rubble)
+//    40 – UNDERGROUND_TOP: packed earth, clay veins
+//   100 – DEEP_TOP       : hard stone, iron ore pockets
+//   199 – BOTTOM row     : indestructible bedrock
 // ============================================================
 
 import {
@@ -51,10 +51,10 @@ export function generateWorld(seed = 42) {
   // Base height sits at SURFACE_TOP; noise adds ±20 tiles
   const surfaceRow = new Int16Array(WORLD_W);
   for (let x = 0; x < WORLD_W; x++) {
-    const n  = noise(x, 40) * 0.5
-             + noise(x, 15) * 0.3
-             + noise(x, 6)  * 0.2;
-    surfaceRow[x] = Math.floor(LAYER.SURFACE_TOP + (n - 0.5) * 40);
+    const n  = noise(x, 13) * 0.5
+             + noise(x, 5)  * 0.3
+             + noise(x, 2)  * 0.2;
+    surfaceRow[x] = Math.floor(LAYER.SURFACE_TOP + (n - 0.5) * 13);
   }
 
   // ── Fill tiles row by row ─────────────────────────────────
@@ -106,7 +106,7 @@ export function generateWorld(seed = 42) {
         }
 
         // Occasional deep-rock bands
-        if (y > LAYER.DEEP_TOP + 80 && rand() < 0.6) {
+        if (y > LAYER.DEEP_TOP + 27 && rand() < 0.6) {
           map[y][x] = TILE_ID.DEEP_ROCK;
         }
       }
@@ -118,12 +118,12 @@ export function generateWorld(seed = 42) {
   const _plateauLeft  = Math.floor(WORLD_W / 2) - Math.floor(STARTING_OUTPOST.PLATEAU_W / 2);
   const _plateauRight = _plateauLeft + STARTING_OUTPOST.PLATEAU_W - 1;
 
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 14; i++) {
     const cx = Math.floor(rand() * WORLD_W);
     // Skip caves that would overlap the spawn plateau
-    if (cx >= _plateauLeft - 6 && cx <= _plateauRight + 6) continue;
-    const cy = surfaceRow[cx] + Math.floor(rand() * 12) + 2;
-    const r  = Math.floor(rand() * 5) + 2;
+    if (cx >= _plateauLeft - 2 && cx <= _plateauRight + 2) continue;
+    const cy = surfaceRow[cx] + Math.floor(rand() * 4) + 1;
+    const r  = Math.floor(rand() * 3) + 1;
     for (let dy = -r; dy <= r; dy++) {
       for (let dx = -r; dx <= r; dx++) {
         if (dx * dx + dy * dy <= r * r) {

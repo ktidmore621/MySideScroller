@@ -1,7 +1,7 @@
 // ============================================================
 //  WorldRenderer — Chunked tile renderer
 //
-//  The world is 300×600 = 180,000 tiles.  Drawing every tile
+//  The world is 100×200 = 20,000 tiles.  Drawing every tile
 //  every frame as individual Graphics calls would be too slow.
 //  Strategy: divide the world into CHUNK_W×CHUNK_H sections.
 //  Each chunk is pre-rendered to a RenderTexture once, then
@@ -11,8 +11,8 @@
 
 import { TILE, WORLD_W, WORLD_H, TILE_ID, TILE_DEF } from '../config.js';
 
-const CHUNK_W = 20; // tiles wide
-const CHUNK_H = 20; // tiles tall
+const CHUNK_W = 10; // tiles wide
+const CHUNK_H = 10; // tiles tall
 
 const COLS = Math.ceil(WORLD_W / CHUNK_W);
 const ROWS = Math.ceil(WORLD_H / CHUNK_H);
@@ -78,7 +78,7 @@ export default class WorldRenderer {
 
         // Subtle top-edge highlight (fake lighting)
         this._brush.fillStyle(0xffffff, 0.07);
-        this._brush.fillRect(lx, ly, TILE - 1, 2);
+        this._brush.fillRect(lx, ly, TILE - 1, Math.max(2, Math.round(TILE * 0.08)));
       }
     }
 
