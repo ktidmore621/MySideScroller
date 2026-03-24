@@ -29,10 +29,16 @@ export default class Colonist {
    * @param {number} x  world-pixel x
    * @param {number} y  world-pixel y
    * @param {number[][]} map  tile map reference
+   * @param {number} [wanderLeftCol]  leftmost wander column
+   * @param {number} [wanderRightCol] rightmost wander column
    */
-  constructor(scene, x, y, map) {
+  constructor(scene, x, y, map, wanderLeftCol, wanderRightCol) {
     this.scene = scene;
     this.map   = map;
+
+    // Safe wander zone (tile columns)
+    this.wanderLeftCol  = wanderLeftCol  ?? 2;
+    this.wanderRightCol = wanderRightCol ?? (WORLD_W - 3);
 
     // ── Physics body (manual arcade) ───────────────────────
     this.vx = 0;
@@ -254,14 +260,19 @@ export default class Colonist {
     this.y = Phaser.Math.Clamp(this.y, hh, WORLD_H * TILE - hh);
   }
 
-  // ── Pick a random surface wander target ───────────────────
+  // ── Pick a random surface wander target (within safe zone) ──
   _pickWanderTarget() {
-    const spread = 5 + Math.floor(Math.random() * 12); // 5-16 tiles away
+    const range  = this.wanderRightCol - this.wanderLeftCol;
+    const spread = Math.min(range, 5 + Math.floor(Math.random() * 12));
     const dir    = Math.random() < 0.5 ? -1 : 1;
     const { col } = worldToTile(this.x, this.y);
-    const newCol  = Phaser.Math.Clamp(col + dir * spread, 2, WORLD_W - 3);
+    const newCol  = Phaser.Math.Clamp(
+      col + dir * spread,
+      this.wanderLeftCol,
+      this.wanderRightCol,
+    );
     this.targetX  = newCol * TILE + TILE / 2;
-    this.wanderTimer = 3 + Math.random() * 4; // fallback timer
+    this.wanderTimer = 3 + Math.random() * 4;
   }
 
   // ── Draw the colonist rectangle ───────────────────────────
