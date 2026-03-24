@@ -11,7 +11,7 @@
 // ============================================================
 
 import { TILE, WORLD_W, WORLD_H, LAYER } from '../config.js';
-import { generateWorld, surfaceAt, tileToWorld } from '../world/WorldGen.js';
+import { generateWorld, tileToWorld } from '../world/WorldGen.js';
 import WorldRenderer  from '../world/WorldRenderer.js';
 import Colonist       from '../entities/Colonist.js';
 import JobSystem      from '../systems/JobSystem.js';
@@ -27,8 +27,8 @@ export default class GameScene extends Phaser.Scene {
 
   // ── create ─────────────────────────────────────────────────
   create() {
-    // 1. Generate world data
-    const { map, surfaceRow } = generateWorld(Date.now() & 0xffffffff);
+    // 1. Generate world data (includes STARTING_OUTPOST placement)
+    const { map, spawnCol, spawnRow } = generateWorld(Date.now() & 0xffffffff);
     this.worldMap = map;
 
     // 2. Render world chunks
@@ -39,9 +39,7 @@ export default class GameScene extends Phaser.Scene {
     const jobOverlay = this.add.graphics().setDepth(5);
     this.jobSystem.setOverlay(jobOverlay);
 
-    // 4. Spawn colonist near the horizontal centre of the map
-    const spawnCol = Math.floor(WORLD_W / 2);
-    const spawnRow = surfaceAt(map, spawnCol) - 2; // just above ground
+    // 4. Spawn colonist at the STARTING_OUTPOST doorway
     const { x: sx, y: sy } = tileToWorld(spawnCol, spawnRow);
     this.colonists = [new Colonist(this, sx, sy, map)];
 

@@ -11,7 +11,7 @@
 // ============================================================
 
 import {
-  WORLD_W, WORLD_H, TILE_ID, LAYER, TILE,
+  WORLD_W, WORLD_H, TILE_ID, LAYER, TILE, STARTING_OUTPOST,
 } from '../config.js';
 
 // ── Tiny deterministic pseudo-random (mulberry32) ───────────
@@ -130,7 +130,83 @@ export function generateWorld(seed = 42) {
     }
   }
 
-  return { map, surfaceRow };
+  // ================================================================
+  //  STARTING_OUTPOST — flatten terrain & erect a ruined shelter
+  //  "Home is wherever the rubble still has a roof." — Colonist proverb
+  // ================================================================
+  const {
+    FLAT_RADIUS, SHELTER_W, WALL_THICK, WALL_H, DOORWAY_W,
+  } = STARTING_OUTPOST;
+
+  const outpostCol   = Math.floor(WORLD_W / 2);   // centre of the world
+  const flatLeft     = outpostCol - FLAT_RADIUS;
+  const flatRight    = outpostCol + FLAT_RADIUS - 1;
+  const flatSurface  = surfaceRow[outpostCol];     // canonical ground level
+
+  // ── 1. Flatten 20-tile landing zone ──────────────────────────
+  for (let x = flatLeft; x <= flatRight; x++) {
+    surfaceRow[x] = flatSurface;
+    for (let y = 0; y < flatSurface; y++) {
+      map[y][x] = TILE_ID.AIR;                    // clear sky above
+    }
+    map[flatSurface][x] = TILE_ID.SURFACE_DIRT;   // solid ground
+  }
+
+  // ── 2. Compute shelter bounds ────────────────────────────────
+  const shelterLeft  = outpostCol - Math.floor(SHELTER_W / 2);
+  const shelterRight = shelterLeft + SHELTER_W - 1;
+  const wallTop      = flatSurface - WALL_H;      // top row of walls
+  const wallBot      = flatSurface - 1;            // bottom row of walls
+  const roofRow      = wallTop - 1;                // roof sits above walls
+
+  // ── 3. Place left wall (solid — still standing) ──────────────
+  for (let y = roofRow; y <= wallBot; y++) {
+    for (let x = shelterLeft; x < shelterLeft + WALL_THICK; x++) {
+      map[y][x] = TILE_ID.RUIN_WALL;
+    }
+  }
+
+  // ── 4. Place right wall (doorway carved out) ─────────────────
+  //  The rightmost DOORWAY_W columns of the wall are missing at
+  //  wall height, leaving only the roof-level cap intact above.
+  for (let y = roofRow; y <= wallBot; y++) {
+    for (let x = shelterRight - WALL_THICK + 1; x <= shelterRight; x++) {
+      const distFromRight = shelterRight - x;     // 0 = rightmost col
+      const isDoorway = y >= wallTop && distFromRight < DOORWAY_W;
+      if (!isDoorway) {
+        map[y][x] = TILE_ID.RUIN_WALL;
+      }
+    }
+  }
+
+  // ── 5. Broken roof — concrete slab with decay holes ──────────
+  const roofGaps = new Set([4, 5, 6, 10]);        // relative offsets → holes
+  for (let x = shelterLeft; x <= shelterRight; x++) {
+    const rel = x - shelterLeft;
+    if (!roofGaps.has(rel)) {
+      map[roofRow][x] = TILE_ID.RUIN_WALL;
+    }
+  }
+
+  // ── 6. Clear interior (breathable air inside the ruin) ───────
+  for (let y = roofRow + 1; y <= wallBot; y++) {
+    for (let x = shelterLeft + WALL_THICK; x <= shelterRight - WALL_THICK; x++) {
+      map[y][x] = TILE_ID.AIR;
+    }
+  }
+  // Also clear the air above the roof inside the flat zone
+  for (let y = 0; y < roofRow; y++) {
+    for (let x = shelterLeft; x <= shelterRight; x++) {
+      map[y][x] = TILE_ID.AIR;
+    }
+  }
+
+  // ── 7. Record spawn point for GameScene ──────────────────────
+  //  Colonist materialises just outside the doorway, facing the entrance.
+  const spawnCol = shelterRight + 1;
+  const spawnRow = flatSurface - 2;               // standing on the ground
+
+  return { map, surfaceRow, spawnCol, spawnRow };
 }
 
 // ── Utility: pixel coords for tile ──────────────────────────
