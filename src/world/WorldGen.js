@@ -135,7 +135,7 @@ export function generateWorld(seed = 42) {
   //  "Home is wherever the rubble still has a roof." — Colonist proverb
   // ================================================================
   const {
-    FLAT_RADIUS, SHELTER_W, WALL_THICK, WALL_H, DOORWAY_W,
+    FLAT_RADIUS, SHELTER_W, WALL_THICK, WALL_H, DOORWAY_W, ROOF_THICK,
   } = STARTING_OUTPOST;
 
   const outpostCol   = Math.floor(WORLD_W / 2);   // centre of the world
@@ -143,7 +143,7 @@ export function generateWorld(seed = 42) {
   const flatRight    = outpostCol + FLAT_RADIUS - 1;
   const flatSurface  = surfaceRow[outpostCol];     // canonical ground level
 
-  // ── 1. Flatten 20-tile landing zone ──────────────────────────
+  // ── 1. Flatten landing zone (5 tiles beyond building each side) ──
   for (let x = flatLeft; x <= flatRight; x++) {
     surfaceRow[x] = flatSurface;
     for (let y = 0; y < flatSurface; y++) {
@@ -155,47 +155,45 @@ export function generateWorld(seed = 42) {
   // ── 2. Compute shelter bounds ────────────────────────────────
   const shelterLeft  = outpostCol - Math.floor(SHELTER_W / 2);
   const shelterRight = shelterLeft + SHELTER_W - 1;
-  const wallTop      = flatSurface - WALL_H;      // top row of walls
-  const wallBot      = flatSurface - 1;            // bottom row of walls
-  const roofRow      = wallTop - 1;                // roof sits above walls
+  const interiorBot  = flatSurface - 1;            // bottom interior row
+  const interiorTop  = flatSurface - WALL_H;       // top interior row
+  const roofBot      = interiorTop - 1;            // bottom of roof slab
+  const roofTop      = roofBot - ROOF_THICK + 1;   // top of roof slab
 
-  // ── 3. Place left wall (solid — still standing) ──────────────
-  for (let y = roofRow; y <= wallBot; y++) {
+  // ── 3. Place roof — solid concrete slab (2 tiles thick) ─────
+  for (let y = roofTop; y <= roofBot; y++) {
+    for (let x = shelterLeft; x <= shelterRight; x++) {
+      map[y][x] = TILE_ID.RUIN_WALL;
+    }
+  }
+
+  // ── 4. Place left wall (solid, full height from roof to ground) ──
+  for (let y = roofTop; y <= interiorBot; y++) {
     for (let x = shelterLeft; x < shelterLeft + WALL_THICK; x++) {
       map[y][x] = TILE_ID.RUIN_WALL;
     }
   }
 
-  // ── 4. Place right wall (doorway carved out) ─────────────────
-  //  The rightmost DOORWAY_W columns of the wall are missing at
-  //  wall height, leaving only the roof-level cap intact above.
-  for (let y = roofRow; y <= wallBot; y++) {
+  // ── 5. Place right wall (doorway carved out, full interior height) ─
+  //  Right wall is solid at roof level, open for the full interior
+  //  height to create a natural-feeling entrance.
+  for (let y = roofTop; y <= interiorBot; y++) {
     for (let x = shelterRight - WALL_THICK + 1; x <= shelterRight; x++) {
-      const distFromRight = shelterRight - x;     // 0 = rightmost col
-      const isDoorway = y >= wallTop && distFromRight < DOORWAY_W;
-      if (!isDoorway) {
+      const inDoorway = y >= interiorTop && y <= interiorBot;
+      if (!inDoorway) {
         map[y][x] = TILE_ID.RUIN_WALL;
       }
     }
   }
 
-  // ── 5. Broken roof — concrete slab with decay holes ──────────
-  const roofGaps = new Set([4, 5, 6, 10]);        // relative offsets → holes
-  for (let x = shelterLeft; x <= shelterRight; x++) {
-    const rel = x - shelterLeft;
-    if (!roofGaps.has(rel)) {
-      map[roofRow][x] = TILE_ID.RUIN_WALL;
-    }
-  }
-
   // ── 6. Clear interior (breathable air inside the ruin) ───────
-  for (let y = roofRow + 1; y <= wallBot; y++) {
+  for (let y = interiorTop; y <= interiorBot; y++) {
     for (let x = shelterLeft + WALL_THICK; x <= shelterRight - WALL_THICK; x++) {
       map[y][x] = TILE_ID.AIR;
     }
   }
   // Also clear the air above the roof inside the flat zone
-  for (let y = 0; y < roofRow; y++) {
+  for (let y = 0; y < roofTop; y++) {
     for (let x = shelterLeft; x <= shelterRight; x++) {
       map[y][x] = TILE_ID.AIR;
     }
