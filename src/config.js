@@ -29,6 +29,7 @@ export const TILE_ID = {
   DEEP_ROCK:   6,
   ORE_IRON:    7,
   BEDROCK:     8,  // indestructible bottom row
+  RUIN_WALL:   9,  // crumbling concrete — remnants of the old world
 };
 
 // Tile visual properties (color, hardness)
@@ -42,6 +43,17 @@ export const TILE_DEF = {
   [TILE_ID.DEEP_ROCK]:    { color: 0x222233, hardness: 4 },
   [TILE_ID.ORE_IRON]:     { color: 0xaa7744, hardness: 3 },
   [TILE_ID.BEDROCK]:      { color: 0x111111, hardness: 999 },
+  [TILE_ID.RUIN_WALL]:    { color: 0x3a3a3e, hardness: 5 },  // dark concrete
+};
+
+// ── Starting Outpost layout constants ────────────────────────
+export const STARTING_OUTPOST = {
+  FLAT_RADIUS:   10,   // half-width of guaranteed flat spawn zone (20 tiles)
+  SHELTER_W:     14,   // total shelter width  (3 wall + 8 interior + 3 wall)
+  WALL_THICK:     3,   // wall thickness in tiles
+  WALL_H:         2,   // wall height in tiles (above ground)
+  INTERIOR_W:     8,   // interior floor width
+  DOORWAY_W:      3,   // doorway opening width (full wall removed)
 };
 
 // Physics
