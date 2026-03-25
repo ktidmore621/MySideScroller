@@ -66,4 +66,4 @@ export const STARTING_OUTPOST = {
 export const ZOOM_MIN     = 0.5;
 export const ZOOM_MAX     = 2.0;
 export const ZOOM_DEFAULT = 1.0;
-export const ZOOM_SMOOTH  = 0.15; // lerp factor per frame (0–1, lower = smoother)
+export const ZOOM_SMOOTH  = 1.0; // instant (no lerp) — temporary for debugging

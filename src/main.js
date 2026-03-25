@@ -28,7 +28,7 @@ const config = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
   input: {
-    activePointers: 2, // support two-finger gestures
+    activePointers: 3, // some devices need 3 for reliable two-finger detection
   },
 };
 
