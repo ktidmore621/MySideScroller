@@ -9,7 +9,7 @@
 //  Touch-only input. Distinguishes taps from camera drags.
 // ============================================================
 
-import { TILE, WORLD_W, WORLD_H, LAYER, TILE_ID } from '../config.js';
+import { TILE, WORLD_W, WORLD_H, LAYER, TILE_ID, ZOOM_MIN, ZOOM_MAX, ZOOM_DEFAULT, ZOOM_SMOOTH, REACH } from '../config.js';
 import { generateWorld, tileToWorld } from '../world/WorldGen.js';
 import WorldRenderer  from '../world/WorldRenderer.js';
 import Colonist       from '../entities/Colonist.js';
@@ -74,13 +74,16 @@ export default class GameScene extends Phaser.Scene {
     this.needsUI.update();
     this._updateDepthHUD();
     this._applyTouchCameraVelocity(dt);
+    this._updateReachFlashes(dt);
 
     const cam = this.cameras.main;
-    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, WORLD_PX_W - this.scale.width);
-    cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, WORLD_PX_H - this.scale.height);
+    const viewW = this.scale.width  / cam.zoom;
+    const viewH = this.scale.height / cam.zoom;
+    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, Math.max(0, WORLD_PX_W - viewW));
+    cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, Math.max(0, WORLD_PX_H - viewH));
   }
 
-  // ── Touch camera drag ─────────────────────────────────────
+  // ── Touch camera drag + pinch-to-zoom ────────────────────
   _setupTouchCamera() {
     this._drag = {
       active:  false,
@@ -92,7 +95,27 @@ export default class GameScene extends Phaser.Scene {
       velY:    0,
     };
 
+    // Pinch-to-zoom state
+    this._pinch = {
+      active:       false,
+      startDist:    0,
+      startZoom:    ZOOM_DEFAULT,
+      prevMidX:     0,
+      prevMidY:     0,
+    };
+    this._zoomTarget  = ZOOM_DEFAULT;
+    this._zoomCurrent = ZOOM_DEFAULT;
+
     this.input.on('pointerdown', (ptr) => {
+      // Check if two pointers are now down — start pinch
+      const p1 = this.input.pointer1;
+      const p2 = this.input.pointer2;
+      if (p1.isDown && p2.isDown) {
+        this._startPinch(p1, p2);
+        this._drag.active = false; // cancel drag when pinch starts
+        return;
+      }
+
       this._drag.active = true;
       this._drag.startX = ptr.x;
       this._drag.startY = ptr.y;
@@ -103,40 +126,106 @@ export default class GameScene extends Phaser.Scene {
     });
 
     this.input.on('pointermove', (ptr) => {
-      if (!this._drag.active || !ptr.isDown) return;
+      const p1 = this.input.pointer1;
+      const p2 = this.input.pointer2;
+
+      // Pinch in progress
+      if (this._pinch.active && p1.isDown && p2.isDown) {
+        this._updatePinch(p1, p2);
+        return;
+      }
+
+      // Single-finger drag
+      if (!this._drag.active || !ptr.isDown || this._pinch.active) return;
       const dx = ptr.x - this._drag.prevX;
       const dy = ptr.y - this._drag.prevY;
+      const cam = this.cameras.main;
       this._drag.velX = -dx;
       this._drag.velY = -dy;
-      this.cameras.main.scrollX -= dx;
-      this.cameras.main.scrollY -= dy;
+      cam.scrollX -= dx / cam.zoom;
+      cam.scrollY -= dy / cam.zoom;
       this._drag.prevX = ptr.x;
       this._drag.prevY = ptr.y;
     });
 
     this.input.on('pointerup', () => {
-      this._drag.active = false;
+      const p1 = this.input.pointer1;
+      const p2 = this.input.pointer2;
+      if (!p1.isDown || !p2.isDown) {
+        this._pinch.active = false;
+      }
+      if (!p1.isDown && !p2.isDown) {
+        this._drag.active = false;
+      }
     });
   }
 
+  _startPinch(p1, p2) {
+    const dist = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
+    this._pinch.active    = true;
+    this._pinch.startDist = dist;
+    this._pinch.startZoom = this._zoomTarget;
+    this._pinch.prevMidX  = (p1.x + p2.x) / 2;
+    this._pinch.prevMidY  = (p1.y + p2.y) / 2;
+  }
+
+  _updatePinch(p1, p2) {
+    const dist = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
+    if (this._pinch.startDist < 1) return;
+
+    const ratio = dist / this._pinch.startDist;
+    this._zoomTarget = Phaser.Math.Clamp(
+      this._pinch.startZoom * ratio,
+      ZOOM_MIN,
+      ZOOM_MAX,
+    );
+
+    // Pan camera so the midpoint stays stable
+    const midX = (p1.x + p2.x) / 2;
+    const midY = (p1.y + p2.y) / 2;
+    const cam = this.cameras.main;
+    const dx = midX - this._pinch.prevMidX;
+    const dy = midY - this._pinch.prevMidY;
+    cam.scrollX -= dx / cam.zoom;
+    cam.scrollY -= dy / cam.zoom;
+    this._pinch.prevMidX = midX;
+    this._pinch.prevMidY = midY;
+  }
+
   _applyTouchCameraVelocity(dt) {
-    if (this._drag.active) return;
+    // Smooth zoom interpolation
+    const cam = this.cameras.main;
+    this._zoomCurrent = Phaser.Math.Linear(this._zoomCurrent, this._zoomTarget, ZOOM_SMOOTH);
+    if (Math.abs(this._zoomCurrent - this._zoomTarget) < 0.001) {
+      this._zoomCurrent = this._zoomTarget;
+    }
+    cam.setZoom(this._zoomCurrent);
+
+    // Inertia drag
+    if (this._drag.active || this._pinch.active) return;
     this._drag.velX *= 0.88;
     this._drag.velY *= 0.88;
     if (Math.abs(this._drag.velX) < 0.1) this._drag.velX = 0;
     if (Math.abs(this._drag.velY) < 0.1) this._drag.velY = 0;
-    this.cameras.main.scrollX += this._drag.velX;
-    this.cameras.main.scrollY += this._drag.velY;
+    cam.scrollX += this._drag.velX / cam.zoom;
+    cam.scrollY += this._drag.velY / cam.zoom;
   }
 
   // ── Three-tap mine input ───────────────────────────────────
   _setupMineInput() {
     this._tapStart = { x: 0, y: 0, moved: false };
 
+    // Graphics layer for out-of-reach flash
+    this._reachFlashGfx = this.add.graphics().setDepth(6);
+    this._reachFlashes = []; // { col, row, timer }
+
     this.input.on('pointerdown', (ptr) => {
       this._tapStart.x     = ptr.x;
       this._tapStart.y     = ptr.y;
       this._tapStart.moved = false;
+
+      // Don't show hover during pinch
+      if (this._pinch.active) return;
 
       // Show hover highlight on touch start (only for mineable tiles)
       this._showHoverAtPointer(ptr);
@@ -157,11 +246,12 @@ export default class GameScene extends Phaser.Scene {
       this.jobSystem.clearHover();
 
       if (this._tapStart.moved) return; // was a drag
+      if (this._pinch.active) return;   // was a pinch
 
-      // Convert screen coords to world coords
+      // Convert screen coords to world coords (accounting for zoom)
       const cam = this.cameras.main;
-      const wx  = ptr.x + cam.scrollX;
-      const wy  = ptr.y + cam.scrollY;
+      const wx  = ptr.x / cam.zoom + cam.scrollX;
+      const wy  = ptr.y / cam.zoom + cam.scrollY;
       const col = Math.floor(wx / TILE);
       const row = Math.floor(wy / TILE);
 
@@ -173,13 +263,20 @@ export default class GameScene extends Phaser.Scene {
       // Only respond to mineable tiles
       if (!this.jobSystem.isMineable(tileId)) return;
 
+      // Mining reach check — find closest colonist for reach test
+      const colonist = this._findAvailableColonist(col, row);
+      if (colonist && !this._isWithinReach(colonist, col, row)) {
+        // Out of reach — show red flash
+        this._showOutOfReachFlash(col, row);
+        return;
+      }
+
       // Three-tap logic
       const action = this.jobSystem.handleTap(col, row, tileId);
 
       switch (action) {
         case 'walk': {
           // Tap 1: send colonist walking toward this tile
-          const colonist = this._findAvailableColonist(col, row);
           if (colonist) {
             colonist.sendToTile(col, row);
             this.jobSystem.assignColonist(col, row, colonist);
@@ -207,12 +304,64 @@ export default class GameScene extends Phaser.Scene {
   }
 
   /**
+   * Check if a tile is within a colonist's mining reach.
+   */
+  _isWithinReach(colonist, col, row) {
+    // Colonist feet position (bottom of sprite) → tile row
+    const feetY   = colonist.y + colonist.h / 2;
+    const feetRow = Math.floor(feetY / TILE);
+    const bodyCol = Math.floor(colonist.x / TILE);
+
+    // Horizontal check: same column or ±REACH.SIDE
+    const colDist = Math.abs(col - bodyCol);
+    if (colDist > REACH.SIDE) return false;
+
+    // Vertical check: tile can be at feet level down to REACH.DOWN,
+    // or up to REACH.UP tiles above feet
+    const rowDiff = feetRow - row; // positive means tile is above feet
+    if (rowDiff < -REACH.DOWN) return false; // tile is too far below
+    if (rowDiff > REACH.UP) return false;    // tile is too far above
+
+    return true;
+  }
+
+  /**
+   * Show a brief red flash on an out-of-reach tile.
+   */
+  _showOutOfReachFlash(col, row) {
+    this._reachFlashes.push({ col, row, timer: 0.5 });
+  }
+
+  /**
+   * Update and draw out-of-reach flashes.
+   */
+  _updateReachFlashes(dt) {
+    if (this._reachFlashes.length === 0) return;
+
+    this._reachFlashGfx.clear();
+
+    for (let i = this._reachFlashes.length - 1; i >= 0; i--) {
+      const f = this._reachFlashes[i];
+      f.timer -= dt;
+      if (f.timer <= 0) {
+        this._reachFlashes.splice(i, 1);
+        continue;
+      }
+      const alpha = f.timer / 0.5; // fade out
+      this._reachFlashGfx.fillStyle(0xff0000, 0.4 * alpha);
+      this._reachFlashGfx.fillRect(f.col * TILE, f.row * TILE, TILE, TILE);
+      this._reachFlashGfx.lineStyle(2, 0xff2222, 0.8 * alpha);
+      this._reachFlashGfx.strokeRect(f.col * TILE, f.row * TILE, TILE, TILE);
+    }
+  }
+
+  /**
    * Show hover highlight when touching a mineable tile.
    */
   _showHoverAtPointer(ptr) {
     const cam = this.cameras.main;
-    const wx  = ptr.x + cam.scrollX;
-    const wy  = ptr.y + cam.scrollY;
+    const wx  = ptr.x / cam.zoom + cam.scrollX;
+    const wy  = ptr.y / cam.zoom + cam.scrollY;
     const col = Math.floor(wx / TILE);
     const row = Math.floor(wy / TILE);
 
