@@ -120,10 +120,10 @@ export const BUILDING_TILE_SRC = {
   outerWallTopCap: { x: 447, y:  65, w: 190, h: 190 }, // T3  top lip cap
   outerRightCap:   { x: 659, y:  65, w:  38, h: 189 }, // T4  right finished edge
   outerLeftCap:    { x: 847, y:  65, w:  38, h: 190 }, // T5  left finished edge
-  cornerTL:        { x: 928, y:  65, w: 122, h: 190 }, // T6  top-left corner
+  cornerTL:        { x: 928, y:  65, w: 122, h: 119 }, // T6  top-left corner
   cornerTR:        { x:1096, y:  65, w: 118, h: 119 }, // T7  top-right corner
   cornerBR:        { x:1095, y: 205, w: 119, h: 114 }, // T8  bottom-right corner
-  cornerBL:        { x: 928, y: 273, w:  18, h:  18 }, // T9  bottom-left corner
+  cornerBL:        { x: 928, y: 205, w: 122, h: 114 }, // T9  bottom-left corner
   // Row 1
   wallVariant:     { x:  61, y: 428, w: 184, h: 203 }, // T10 corrugated panels
   wallInsetPanel:  { x: 265, y: 429, w: 165, h: 202 }, // T11 inset panel detail
@@ -145,8 +145,8 @@ export const BLDG_TILE_TO_SRC = {
   [TILE_ID.BLDG_CORNER_BR]: 'cornerBR',
   [TILE_ID.BLDG_CORNER_BL]: 'cornerBL',
   [TILE_ID.BLDG_TOP_CAP]:   'outerWallTopCap',
-  [TILE_ID.BLDG_LEFT_CAP]:  'outerLeftCap',
-  [TILE_ID.BLDG_RIGHT_CAP]: 'outerRightCap',
+  [TILE_ID.BLDG_LEFT_CAP]:  'outerRightCap',   // T4 (x:659) is the left-facing finished edge
+  [TILE_ID.BLDG_RIGHT_CAP]: 'outerLeftCap',    // T5 (x:847) is the right-facing finished edge
   [TILE_ID.BLDG_INTERIOR]:  'outerWallStd',
   [TILE_ID.RUIN_WALL]:      'outerWallStd',  // fallback for any remaining generic wall
 };
