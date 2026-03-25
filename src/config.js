@@ -62,6 +62,33 @@ export const STARTING_OUTPOST = {
   BUILDING_GAP:   3,   // tiles from spawn to building left wall
 };
 
+// ── Tile sprite frame definitions (source rects in dirt-grass.png) ───
+// Each entry: { x, y, w, h } in the spritesheet
+export const TILE_FRAMES = {
+  // Row 1 — pure dirt underground variants (6)
+  dirt: [
+    { x: 51,   y: 62, w: 219, h: 216 },
+    { x: 294,  y: 63, w: 219, h: 213 },
+    { x: 537,  y: 63, w: 219, h: 216 },
+    { x: 780,  y: 63, w: 219, h: 213 },
+    { x: 1023, y: 62, w: 219, h: 217 },
+    { x: 1266, y: 62, w: 219, h: 214 },
+  ],
+  // Row 2 — grass-top surface tiles (4 variants)
+  grassTop: [
+    { x: 51,  y: 340, w: 219, h: 219 },
+    { x: 294, y: 340, w: 219, h: 219 },
+    { x: 537, y: 340, w: 219, h: 219 },
+    { x: 780, y: 340, w: 219, h: 219 },
+  ],
+  // Row 2 — corner tiles (grass on top + side)
+  grassCornerTL: { x: 1023, y: 340, w: 219, h: 219 },
+  grassCornerTR: { x: 1266, y: 340, w: 219, h: 219 },
+  // Row 3 — side edge tiles
+  grassLeft:  { x: 51,  y: 607, w: 219, h: 219 },
+  grassRight: { x: 281, y: 607, w: 219, h: 219 },
+};
+
 // Pinch-to-zoom
 export const ZOOM_MIN     = 0.5;
 export const ZOOM_MAX     = 2.0;
