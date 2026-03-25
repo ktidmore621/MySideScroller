@@ -72,3 +72,16 @@ export const REST_DECAY   = 1.0;
 
 // Camera drag sensitivity (touch)
 export const DRAG_FACTOR = 1.0;
+
+// Pinch-to-zoom
+export const ZOOM_MIN     = 0.5;
+export const ZOOM_MAX     = 2.0;
+export const ZOOM_DEFAULT = 1.0;
+export const ZOOM_SMOOTH  = 0.15; // lerp factor per frame (0–1, lower = smoother)
+
+// Mining reach (in tiles, relative to colonist feet)
+export const REACH = {
+  SIDE:  1,   // tiles left/right of colonist column
+  UP:    2,   // tiles above colonist feet row
+  DOWN:  0,   // tiles below colonist feet (same row only)
+};
