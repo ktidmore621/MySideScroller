@@ -34,8 +34,9 @@ export default class BootScene extends Phaser.Scene {
       bar.width = 298 * v;
     });
 
-    // ── Load tile image (single image, no spritesheet) ───────
+    // ── Load tile images (single images, no spritesheet) ─────
     this.load.image('tiles-dirt-grass', 'assets/tiles/dirt-grass.png');
+    this.load.image('tiles-building', 'assets/tiles/building-walls.png');
   }
 
   create() {

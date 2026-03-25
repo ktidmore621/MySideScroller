@@ -11,7 +11,10 @@
 //  Other tile types remain coloured placeholders.
 // ============================================================
 
-import { TILE, WORLD_W, WORLD_H, TILE_ID, TILE_DEF, TILE_SRC } from '../config.js';
+import {
+  TILE, WORLD_W, WORLD_H, TILE_ID, TILE_DEF, TILE_SRC,
+  BUILDING_TILE_SRC, BLDG_TILE_TO_SRC,
+} from '../config.js';
 
 const CHUNK_W = 10; // tiles wide
 const CHUNK_H = 10; // tiles tall
@@ -26,6 +29,19 @@ const DIRT_TILE_IDS = new Set([
   TILE_ID.CLAY,
 ]);
 
+// Tile IDs rendered with the building tile image
+const BUILDING_TILE_IDS = new Set([
+  TILE_ID.RUIN_WALL,
+  TILE_ID.BLDG_CORNER_TL,
+  TILE_ID.BLDG_CORNER_TR,
+  TILE_ID.BLDG_CORNER_BR,
+  TILE_ID.BLDG_CORNER_BL,
+  TILE_ID.BLDG_TOP_CAP,
+  TILE_ID.BLDG_LEFT_CAP,
+  TILE_ID.BLDG_RIGHT_CAP,
+  TILE_ID.BLDG_INTERIOR,
+]);
+
 export default class WorldRenderer {
   /**
    * @param {Phaser.Scene} scene
@@ -35,12 +51,14 @@ export default class WorldRenderer {
     this.scene = scene;
     this.map   = map;
 
-    // Get the raw HTMLImageElement from the loaded texture
+    // Get the raw HTMLImageElements from the loaded textures
     this._srcImg = scene.textures.get('tiles-dirt-grass').getSourceImage();
+    this._bldgImg = scene.textures.get('tiles-building').getSourceImage();
 
     // Pre-render each tile variant to its own TILE×TILE canvas so
     // we can stamp them quickly into chunk canvases.
     this._tileCanvases = this._buildTileCanvases();
+    this._bldgCanvases = this._buildBldgCanvases();
 
     // One CanvasTexture per chunk
     this.chunks = []; // [chunkRow][chunkCol] = { ct, dirty }
@@ -74,6 +92,26 @@ export default class WorldRenderer {
     canvases.grassRight = this._cropToCanvas(src, gr.x, gr.y, gr.w, gr.h);
 
     return canvases;
+  }
+
+  // ── Create pre-scaled TILE×TILE canvases for building tile variants ──
+  _buildBldgCanvases() {
+    const src = this._bldgImg;
+    const canvases = {};
+    for (const [key, rect] of Object.entries(BUILDING_TILE_SRC)) {
+      canvases[key] = this._cropToCanvas(src, rect.x, rect.y, rect.w, rect.h);
+    }
+    return canvases;
+  }
+
+  // ── Pick pre-rendered canvas for a building tile ID ──
+  _pickBldgCanvas(tileId) {
+    const srcKey = BLDG_TILE_TO_SRC[tileId];
+    if (srcKey && this._bldgCanvases[srcKey]) {
+      return this._bldgCanvases[srcKey];
+    }
+    // Fallback to generic wall panel
+    return this._bldgCanvases.outerWallStd;
   }
 
   // Crop a region from srcImg and scale it to TILE×TILE on a new canvas
@@ -161,8 +199,12 @@ export default class WorldRenderer {
           // Draw pre-cropped tile canvas (drawImage with source rect)
           const tileCanvas = this._pickTileCanvas(col, row);
           ctx.drawImage(tileCanvas, lx, ly);
+        } else if (BUILDING_TILE_IDS.has(id)) {
+          // Draw building tile from sprite sheet
+          const bldgCanvas = this._pickBldgCanvas(id);
+          ctx.drawImage(bldgCanvas, lx, ly);
         } else {
-          // Coloured rectangle placeholder (rock, bedrock, ruin wall, etc.)
+          // Coloured rectangle placeholder (rock, bedrock, etc.)
           ctx.fillStyle = '#' + def.color.toString(16).padStart(6, '0');
           ctx.fillRect(lx, ly, TILE - 1, TILE - 1);
 
