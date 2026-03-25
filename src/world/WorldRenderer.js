@@ -61,6 +61,18 @@ export default class WorldRenderer {
     const g = TILE_SRC.grassTop[0];
     canvases.grassTop = this._cropToCanvas(src, g.x, g.y, g.w, g.h);
 
+    // Corner tiles (grass on top + side)
+    const ctl = TILE_SRC.grassCornerTL;
+    canvases.grassCornerTL = this._cropToCanvas(src, ctl.x, ctl.y, ctl.w, ctl.h);
+    const ctr = TILE_SRC.grassCornerTR;
+    canvases.grassCornerTR = this._cropToCanvas(src, ctr.x, ctr.y, ctr.w, ctr.h);
+
+    // Side edge tiles (grass on left/right side only)
+    const gl = TILE_SRC.grassLeft;
+    canvases.grassLeft = this._cropToCanvas(src, gl.x, gl.y, gl.w, gl.h);
+    const gr = TILE_SRC.grassRight;
+    canvases.grassRight = this._cropToCanvas(src, gr.x, gr.y, gr.w, gr.h);
+
     return canvases;
   }
 
@@ -75,12 +87,30 @@ export default class WorldRenderer {
     return canvas;
   }
 
+  // ── Check if a neighbor tile is air (exposed) ──
+  _isAir(col, row) {
+    if (row < 0 || col < 0 || col >= WORLD_W) return true; // out of bounds = air
+    if (row >= WORLD_H) return false; // below world = solid
+    return this.map[row][col] === TILE_ID.AIR;
+  }
+
   // ── Decide which pre-rendered canvas to use for a dirt/grass tile ──
   _pickTileCanvas(col, row) {
-    const above = row > 0 ? this.map[row - 1][col] : TILE_ID.AIR;
-    if (above === TILE_ID.AIR) {
-      return this._tileCanvases.grassTop;
-    }
+    const airAbove = this._isAir(col, row - 1);
+    const airLeft  = this._isAir(col - 1, row);
+    const airRight = this._isAir(col + 1, row);
+
+    // Top-left corner: air above AND to the left
+    if (airAbove && airLeft) return this._tileCanvases.grassCornerTL;
+    // Top-right corner: air above AND to the right
+    if (airAbove && airRight) return this._tileCanvases.grassCornerTR;
+    // Top surface only: air above
+    if (airAbove) return this._tileCanvases.grassTop;
+    // Left exposed edge: air to the left (but not above)
+    if (airLeft) return this._tileCanvases.grassLeft;
+    // Right exposed edge: air to the right (but not above)
+    if (airRight) return this._tileCanvases.grassRight;
+    // Fully underground: no air exposure
     return this._tileCanvases.dirt;
   }
 
@@ -157,13 +187,21 @@ export default class WorldRenderer {
     }
   }
 
-  // ── Mark a tile dirty (e.g. after mining) ────────────────
+  // ── Mark a tile and its neighbors dirty (e.g. after mining) ──
+  // Neighbors must redraw because edge detection depends on adjacency.
   dirtyTile(col, row) {
-    const cc = Math.floor(col / CHUNK_W);
-    const cr = Math.floor(row / CHUNK_H);
-    if (this.chunks[cr] && this.chunks[cr][cc]) {
-      this.chunks[cr][cc].dirty = true;
-    }
+    const mark = (c, r) => {
+      const cc = Math.floor(c / CHUNK_W);
+      const cr = Math.floor(r / CHUNK_H);
+      if (this.chunks[cr] && this.chunks[cr][cc]) {
+        this.chunks[cr][cc].dirty = true;
+      }
+    };
+    mark(col, row);
+    mark(col - 1, row);
+    mark(col + 1, row);
+    mark(col, row - 1);
+    mark(col, row + 1);
   }
 
   // ── Call once per frame (only redraws dirty chunks) ───────

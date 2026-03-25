@@ -76,18 +76,20 @@ export const TILE_SRC = {
     { x: 1055, y: 51, w: 183, h: 181 },
   ],
   // Row 1 — grass-top surface tiles (4 variants)
+  // Y pushed down +18 px to crop past label text ("Grass No Edges" etc.)
   grassTop: [
-    { x: 42,  y: 268, w: 183, h: 196 },
-    { x: 244, y: 268, w: 184, h: 196 },
-    { x: 447, y: 267, w: 183, h: 197 },
-    { x: 650, y: 297, w: 173, h: 167 },
+    { x: 42,  y: 286, w: 183, h: 178 },
+    { x: 244, y: 286, w: 184, h: 178 },
+    { x: 447, y: 285, w: 183, h: 179 },
+    { x: 650, y: 315, w: 173, h: 149 },
   ],
   // Row 1 — corner tiles (grass on top + side)
-  grassCornerTL: { x: 852,  y: 267, w: 179, h: 197 },
-  grassCornerTR: { x: 1055, y: 268, w: 183, h: 196 },
+  grassCornerTL: { x: 852,  y: 285, w: 179, h: 179 },
+  grassCornerTR: { x: 1055, y: 286, w: 183, h: 178 },
   // Row 2 — side edge tiles
-  grassLeft:  { x: 42,  y: 488, w: 172, h: 179 },
-  grassRight: { x: 244, y: 485, w: 184, h: 182 },
+  // Y pushed down +18 px to crop past label text
+  grassLeft:  { x: 42,  y: 506, w: 172, h: 161 },
+  grassRight: { x: 244, y: 503, w: 184, h: 164 },
 };
 
 // Pinch-to-zoom
