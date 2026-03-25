@@ -97,7 +97,7 @@ export default class WorldRenderer {
     }
   }
 
-  // ── Called by Colonist after mining a tile ────────────────
+  // ── Mark a tile dirty (e.g. after mining) ────────────────
   dirtyTile(col, row) {
     const cc = Math.floor(col / CHUNK_W);
     const cr = Math.floor(row / CHUNK_H);

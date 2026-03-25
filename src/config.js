@@ -54,34 +54,16 @@ export const STARTING_OUTPOST = {
   HILL_H:         2,   // hill height above plateau surface
   SHELTER_W:      6,   // total shelter width  (1 wall + 4 interior + 1 wall)
   WALL_THICK:     1,   // wall thickness in tiles
-  WALL_H:         3,   // interior height in tiles (colonist=2 + 1 headroom)
+  WALL_H:         3,   // interior height in tiles
   INTERIOR_W:     4,   // interior floor width
   DOORWAY_W:      1,   // doorway opening width
   ROOF_THICK:     1,   // roof thickness in tiles (solid slab)
-  SPAWN_OFFSET:   5,   // colonist spawn column offset from plateau left edge
-  BUILDING_GAP:   3,   // tiles from colonist spawn to building left wall
+  SPAWN_OFFSET:   5,   // spawn column offset from plateau left edge
+  BUILDING_GAP:   3,   // tiles from spawn to building left wall
 };
-
-// Physics
-export const GRAVITY      = 2400; // px/s² (scaled with tile size for consistent feel)
-export const COLONIST_SPD = 80;   // px/s walk speed (~1.67 tiles/sec for a slow purposeful walk)
-
-// Needs decay rates (units per second, max = 100)
-export const HUNGER_DECAY = 1.5;
-export const REST_DECAY   = 1.0;
-
-// Camera drag sensitivity (touch)
-export const DRAG_FACTOR = 1.0;
 
 // Pinch-to-zoom
 export const ZOOM_MIN     = 0.5;
 export const ZOOM_MAX     = 2.0;
 export const ZOOM_DEFAULT = 1.0;
 export const ZOOM_SMOOTH  = 0.15; // lerp factor per frame (0–1, lower = smoother)
-
-// Mining reach (in tiles, relative to colonist feet)
-export const REACH = {
-  SIDE:  1,   // tiles left/right of colonist column
-  UP:    2,   // tiles above colonist feet row
-  DOWN:  0,   // tiles below colonist feet (same row only)
-};
