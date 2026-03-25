@@ -41,27 +41,47 @@ export default class GameScene extends Phaser.Scene {
     const hoverOverlay = this.add.graphics().setDepth(4);
     this.jobSystem.setHoverOverlay(hoverOverlay);
 
-    // 4. Spawn colonist
+    // 4. Create colonist animations
+    this.anims.create({
+      key: 'colonist-idle',
+      frames: [{ key: 'colonist', frame: 0 }],
+      frameRate: 1,
+      repeat: 0,
+    });
+    this.anims.create({
+      key: 'colonist-walk',
+      frames: this.anims.generateFrameNumbers('colonist', { start: 0, end: 7 }),
+      frameRate: 10,
+      repeat: -1,
+    });
+    this.anims.create({
+      key: 'colonist-run',
+      frames: this.anims.generateFrameNumbers('colonist', { start: 8, end: 15 }),
+      frameRate: 14,
+      repeat: -1,
+    });
+
+    // 5. Spawn colonist
     const { x: sx, y: sy } = tileToWorld(spawnCol, spawnRow);
     this.colonists = [new Colonist(this, sx, sy, map, wanderLeftCol, wanderRightCol)];
 
-    // 5. HUD
+    // 6. HUD
     this.needsUI = new NeedsUI(this, this.colonists);
 
-    // 6. Camera setup
+    // 7. Camera setup
     this.cameras.main.setBounds(0, 0, WORLD_PX_W, WORLD_PX_H);
     this.cameras.main.centerOn(sx, sy);
 
-    // 7. Touch drag camera
+    // 8. Touch drag camera
     this._setupTouchCamera();
 
-    // 8. Touch-to-mine input (three-tap system)
+    // 9. Touch-to-mine input (three-tap system)
     this._setupMineInput();
 
-    // 9. Sky gradient backdrop
+    // 10. Sky gradient backdrop
     this._drawSkyBackdrop();
 
-    // 10. Depth label
+    // 11. Depth label
     this._createDepthHUD();
   }
 

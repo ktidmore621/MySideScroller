@@ -41,14 +41,17 @@ export default class Colonist {
     this.vy = 0;
     this.x  = x;
     this.y  = y;
-    this.w  = TILE * 1.2;
-    this.h  = TILE * 2;
+    this.w  = TILE;       // 1 tile wide (sprite scaled to fit)
+    this.h  = TILE * 2;  // 2 tiles tall
     this.grounded = false;
 
-    // Visual
-    this.gfx = scene.add.graphics();
-    this.gfx.setDepth(10);
-    this._drawSprite();
+    // Visual — sprite replaces old Graphics rectangles
+    this.sprite = scene.add.sprite(x, y, 'colonist', 0);
+    this.sprite.setDepth(10);
+    // Scale: 1 tile wide × 2 tiles tall
+    this.sprite.setDisplaySize(TILE, TILE * 2);
+    this.sprite.play('colonist-idle');
+    this._facing = 1; // 1 = right, -1 = left
 
     // Needs (0–100)
     this.hunger = 80;
@@ -79,7 +82,7 @@ export default class Colonist {
     this._applyGravity(dt);
     this._runState(dt);
     this._moveAndCollide(dt);
-    this._drawSprite();
+    this._updateSprite();
     this._drawProgressBar();
     this._enforceWorldBounds();
   }
@@ -338,31 +341,21 @@ export default class Colonist {
     this.wanderTimer = 3 + Math.random() * 4;
   }
 
-  // ── Draw the colonist rectangle ───────────────────────────
-  _drawSprite() {
-    const hw = this.w / 2, hh = this.h / 2;
-    this.gfx.clear();
+  // ── Update sprite position, flip, and animation ───────────
+  _updateSprite() {
+    this.sprite.setPosition(this.x, this.y);
 
-    // Body color based on state
-    let bodyColor = 0x3a5c2a; // default green hazmat
-    if (this.state === STATE.REST)    bodyColor = 0x334422;
-    if (this.state === STATE.MINING)  bodyColor = 0xddaa00;
-    if (this.state === STATE.WAITING) bodyColor = 0x5a7c4a; // lighter green
+    // Flip based on movement direction
+    if (this.vx > 0) this._facing = 1;
+    else if (this.vx < 0) this._facing = -1;
+    this.sprite.setFlipX(this._facing < 0);
 
-    this.gfx.fillStyle(bodyColor, 1);
-    this.gfx.fillRect(this.x - hw, this.y - hh, this.w, this.h);
-
-    // Visor strip
-    const vi = Math.round(TILE * 0.12);          // inset from edge
-    const vh = Math.round(TILE * 0.3);           // visor height
-    this.gfx.fillStyle(0x88ccdd, 0.8);
-    this.gfx.fillRect(this.x - hw + vi, this.y - hh + vi, this.w - vi * 2, vh);
-
-    // Legs
-    const legH = Math.round(TILE * 0.3);
-    this.gfx.fillStyle(0x2a3c1a, 1);
-    this.gfx.fillRect(this.x - hw,  this.y + hh - legH, this.w / 2 - 1, legH);
-    this.gfx.fillRect(this.x + 1,   this.y + hh - legH, this.w / 2 - 1, legH);
+    // Pick animation by movement state
+    const moving = Math.abs(this.vx) > 1;
+    const animKey = moving ? 'colonist-walk' : 'colonist-idle';
+    if (this.sprite.anims.currentAnim?.key !== animKey) {
+      this.sprite.play(animKey);
+    }
   }
 
   // ── Draw mining progress bar above the tile being mined ────
@@ -396,7 +389,7 @@ export default class Colonist {
   }
 
   destroy() {
-    this.gfx.destroy();
+    this.sprite.destroy();
     this._progressGfx.destroy();
   }
 }

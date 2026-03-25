@@ -36,8 +36,11 @@ export default class BootScene extends Phaser.Scene {
       bar.width = 298 * v;
     });
 
-    // No real assets — but we could add spritesheets here later:
-    // this.load.spritesheet('colonist', 'assets/colonist.png', { ... });
+    // Colonist spritesheet — 8 columns × 4 rows
+    this.load.spritesheet('colonist', 'assets/sprites/colonist.png', {
+      frameWidth:  192,   // 1536 / 8
+      frameHeight: 256,   // 1024 / 4
+    });
   }
 
   create() {
