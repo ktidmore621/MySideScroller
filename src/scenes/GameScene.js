@@ -29,13 +29,17 @@ export default class GameScene extends Phaser.Scene {
 
     // 3. Camera setup — center on spawn point
     const { x: cx, y: cy } = tileToWorld(spawnCol, spawnRow);
-    this.cameras.main.setBounds(0, 0, WORLD_PX_W, WORLD_PX_H);
+    // NOTE: cam.setBounds() removed — conflicts with setZoom in Phaser 3.
+    // Bounds are enforced manually in update() instead.
     this.cameras.main.centerOn(cx, cy);
 
     // 4. Touch drag + pinch-to-zoom camera
     this._setupTouchCamera();
 
-    // 5. Sky gradient backdrop
+    // 5. Zoom debug readout (top-right, below depth HUD)
+    this._createZoomHUD();
+
+    // 6. Sky gradient backdrop
     this._drawSkyBackdrop();
 
     // 6. Depth label
@@ -48,6 +52,7 @@ export default class GameScene extends Phaser.Scene {
 
     this.worldRenderer.update();
     this._updateDepthHUD();
+    this._updateZoomHUD();
     this._applyTouchCameraSmooth(dt);
 
     // Clamp camera to world bounds
@@ -60,6 +65,8 @@ export default class GameScene extends Phaser.Scene {
 
   // ── Touch camera: single-finger drag + pinch-to-zoom ──────
   _setupTouchCamera() {
+    console.log('touch camera setup');
+
     // Drag state
     this._drag = {
       active: false,
@@ -213,6 +220,24 @@ export default class GameScene extends Phaser.Scene {
         align: 'right',
       }
     ).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+  }
+
+  _createZoomHUD() {
+    this._zoomText = this.add.text(
+      this.scale.width - 8, 24,
+      '',
+      {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#66aa66',
+        align: 'right',
+      }
+    ).setOrigin(1, 0).setScrollFactor(0).setDepth(100);
+  }
+
+  _updateZoomHUD() {
+    const cam = this.cameras.main;
+    this._zoomText.setText(`ZOOM: ${cam.zoom.toFixed(2)} (target: ${this._zoomTarget.toFixed(2)})`);
   }
 
   _updateDepthHUD() {
