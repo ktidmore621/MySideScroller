@@ -123,6 +123,9 @@ export default class GameScene extends Phaser.Scene {
       prevMidX:     0,
       prevMidY:     0,
     };
+    // Track whether a pinch occurred during this touch sequence so the
+    // mine-input handler can reject false taps after a pinch ends.
+    this._wasPinching = false;
     this._zoomTarget  = ZOOM_DEFAULT;
     this._zoomCurrent = ZOOM_DEFAULT;
 
@@ -175,7 +178,8 @@ export default class GameScene extends Phaser.Scene {
         this._pinch.active = false;
       }
       if (!p1.isDown && !p2.isDown) {
-        this._drag.active = false;
+        this._drag.active  = false;
+        this._wasPinching  = false; // only clear after ALL fingers are up
       }
     });
   }
@@ -183,6 +187,7 @@ export default class GameScene extends Phaser.Scene {
   _startPinch(p1, p2) {
     const dist = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
     this._pinch.active    = true;
+    this._wasPinching     = true; // persists until all fingers lift
     this._pinch.startDist = dist;
     this._pinch.startZoom = this._zoomTarget;
     this._pinch.prevMidX  = (p1.x + p2.x) / 2;
@@ -265,8 +270,8 @@ export default class GameScene extends Phaser.Scene {
       // Clear hover on release
       this.jobSystem.clearHover();
 
-      if (this._tapStart.moved) return; // was a drag
-      if (this._pinch.active) return;   // was a pinch
+      if (this._tapStart.moved) return;                      // was a drag
+      if (this._pinch.active || this._wasPinching) return;   // was a pinch
 
       // Convert screen coords to world coords (accounting for zoom)
       const cam = this.cameras.main;
@@ -283,20 +288,14 @@ export default class GameScene extends Phaser.Scene {
       // Only respond to mineable tiles
       if (!this.jobSystem.isMineable(tileId)) return;
 
-      // Mining reach check — find closest colonist for reach test
-      const colonist = this._findAvailableColonist(col, row);
-      if (colonist && !this._isWithinReach(colonist, col, row)) {
-        // Out of reach — show red flash
-        this._showOutOfReachFlash(col, row);
-        return;
-      }
-
-      // Three-tap logic
+      // Three-tap logic (reach is validated when the colonist arrives,
+      // not here — tap 1 must be able to target any visible tile)
       const action = this.jobSystem.handleTap(col, row, tileId);
 
       switch (action) {
         case 'walk': {
           // Tap 1: send colonist walking toward this tile
+          const colonist = this._findAvailableColonist(col, row);
           if (colonist) {
             colonist.sendToTile(col, row);
             this.jobSystem.assignColonist(col, row, colonist);
