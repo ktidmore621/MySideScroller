@@ -64,7 +64,7 @@ export const STARTING_OUTPOST = {
 
 // Physics
 export const GRAVITY      = 2400; // px/s² (scaled with tile size for consistent feel)
-export const COLONIST_SPD = 240;  // px/s walk speed (scaled with tile size)
+export const COLONIST_SPD = 80;   // px/s walk speed (~1.67 tiles/sec for a slow purposeful walk)
 
 // Needs decay rates (units per second, max = 100)
 export const HUNGER_DECAY = 1.5;

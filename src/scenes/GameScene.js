@@ -273,12 +273,11 @@ export default class GameScene extends Phaser.Scene {
       if (this._tapStart.moved) return;                      // was a drag
       if (this._pinch.active || this._wasPinching) return;   // was a pinch
 
-      // Convert screen coords to world coords (accounting for zoom)
+      // Convert screen coords to world coords via Phaser camera
       const cam = this.cameras.main;
-      const wx  = ptr.x / cam.zoom + cam.scrollX;
-      const wy  = ptr.y / cam.zoom + cam.scrollY;
-      const col = Math.floor(wx / TILE);
-      const row = Math.floor(wy / TILE);
+      const wp  = cam.getWorldPoint(ptr.x, ptr.y);
+      const col = Math.floor(wp.x / TILE);
+      const row = Math.floor(wp.y / TILE);
 
       // Bounds check
       if (col < 0 || col >= WORLD_W || row < 0 || row >= WORLD_H) return;
@@ -379,10 +378,9 @@ export default class GameScene extends Phaser.Scene {
    */
   _showHoverAtPointer(ptr) {
     const cam = this.cameras.main;
-    const wx  = ptr.x / cam.zoom + cam.scrollX;
-    const wy  = ptr.y / cam.zoom + cam.scrollY;
-    const col = Math.floor(wx / TILE);
-    const row = Math.floor(wy / TILE);
+    const wp  = cam.getWorldPoint(ptr.x, ptr.y);
+    const col = Math.floor(wp.x / TILE);
+    const row = Math.floor(wp.y / TILE);
 
     if (col < 0 || col >= WORLD_W || row < 0 || row >= WORLD_H) return;
 

@@ -45,12 +45,13 @@ export default class Colonist {
     this.h  = TILE * 2;  // 2 tiles tall
     this.grounded = false;
 
-    // Visual — sprite replaces old Graphics rectangles
+    // Visual — single sprite, no other visual objects for the colonist
     this.sprite = scene.add.sprite(x, y, 'colonist', 0);
     this.sprite.setDepth(10);
-    // Scale: 1 tile wide × 2 tiles tall
     this.sprite.setDisplaySize(TILE, TILE * 2);
     this.sprite.play('colonist-idle');
+    // Ensure sprite never consumes touch input (let taps reach tile handler)
+    this.sprite.disableInteractive();
     this._facing = 1; // 1 = right, -1 = left
 
     // Needs (0–100)
