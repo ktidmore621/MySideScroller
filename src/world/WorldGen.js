@@ -244,7 +244,7 @@ export function generateWorld(seed = 42) {
   // 4b. Place LEFT wall (doorway facing colonist — open interior height)
   for (let y = roofBot + 1; y <= wallBot; y++) {
     for (let x = shelterLeft; x < shelterLeft + WALL_THICK; x++) {
-      const inDoorway = y >= interiorTop && y <= wallBot;
+      const inDoorway = y >= interiorTop && y <= interiorBot;
       if (!inDoorway) {
         // Bottom-left corner on the floor row
         if (y === wallBot) {
