@@ -225,29 +225,48 @@ export function generateWorld(seed = 42) {
     }
   }
 
-  // 4a. Place roof — solid concrete slab
+  // 4a. Place roof — top cap tiles along the roof line
   for (let y = roofTop; y <= roofBot; y++) {
     for (let x = shelterLeft; x <= shelterRight; x++) {
-      map[y][x] = TILE_ID.RUIN_WALL;
+      // Corners on the roof row
+      if (y === roofTop && x === shelterLeft) {
+        map[y][x] = TILE_ID.BLDG_CORNER_TL;
+      } else if (y === roofTop && x === shelterRight) {
+        map[y][x] = TILE_ID.BLDG_CORNER_TR;
+      } else if (y === roofTop) {
+        map[y][x] = TILE_ID.BLDG_TOP_CAP;
+      } else {
+        map[y][x] = TILE_ID.BLDG_INTERIOR;
+      }
     }
   }
 
   // 4b. Place LEFT wall (doorway facing colonist — open interior height)
-  for (let y = roofTop; y <= wallBot; y++) {
+  for (let y = roofBot + 1; y <= wallBot; y++) {
     for (let x = shelterLeft; x < shelterLeft + WALL_THICK; x++) {
       const inDoorway = y >= interiorTop && y <= interiorBot;
       if (!inDoorway) {
-        map[y][x] = TILE_ID.RUIN_WALL;
+        // Bottom-left corner on the floor row
+        if (y === wallBot) {
+          map[y][x] = TILE_ID.BLDG_CORNER_BL;
+        } else {
+          map[y][x] = TILE_ID.BLDG_LEFT_CAP;
+        }
       } else {
-        map[y][x] = TILE_ID.AIR;
+        map[y][x] = TILE_ID.AIR; // doorway
       }
     }
   }
 
   // 4c. Place RIGHT wall (solid, no doorway)
-  for (let y = roofTop; y <= wallBot; y++) {
+  for (let y = roofBot + 1; y <= wallBot; y++) {
     for (let x = shelterRight - WALL_THICK + 1; x <= shelterRight; x++) {
-      map[y][x] = TILE_ID.RUIN_WALL;
+      // Bottom-right corner on the floor row
+      if (y === wallBot) {
+        map[y][x] = TILE_ID.BLDG_CORNER_BR;
+      } else {
+        map[y][x] = TILE_ID.BLDG_RIGHT_CAP;
+      }
     }
   }
 
@@ -259,8 +278,9 @@ export function generateWorld(seed = 42) {
   }
 
   // 4e. Bottom wall row (floor of building) sits on the surface
-  for (let x = shelterLeft; x <= shelterRight; x++) {
-    map[wallBot][x] = TILE_ID.RUIN_WALL;
+  // Interior floor tiles + corners already placed above
+  for (let x = shelterLeft + WALL_THICK; x <= shelterRight - WALL_THICK; x++) {
+    map[wallBot][x] = TILE_ID.BLDG_INTERIOR;
   }
 
   // ── 5. Record safe wander bounds for the colonist ─────────────
