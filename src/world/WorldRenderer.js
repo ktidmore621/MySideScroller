@@ -2,18 +2,16 @@
 //  WorldRenderer — Chunked tile renderer
 //
 //  The world is 100×200 = 20,000 tiles.  Drawing every tile
-//  every frame as individual Graphics calls would be too slow.
-//  Strategy: divide the world into CHUNK_W×CHUNK_H sections.
-//  Each chunk is pre-rendered to a RenderTexture once, then
-//  just blitted.  Only dirty chunks are redrawn (e.g. after
-//  mining a tile).
+//  every frame would be too slow.  Strategy: divide the world
+//  into CHUNK_W×CHUNK_H sections, pre-render each to a
+//  CanvasTexture, and just blit.  Only dirty chunks redraw.
 //
-//  Dirt / grass tiles are drawn from the tiles-dirt-grass
-//  spritesheet.  Other tile types (rock, bedrock, ruin wall)
-//  remain coloured rectangles for now.
+//  Dirt / grass tiles are cropped from the tiles-dirt-grass
+//  image using drawImage with explicit source rectangles.
+//  Other tile types remain coloured placeholders.
 // ============================================================
 
-import { TILE, WORLD_W, WORLD_H, TILE_ID, TILE_DEF } from '../config.js';
+import { TILE, WORLD_W, WORLD_H, TILE_ID, TILE_DEF, TILE_SRC } from '../config.js';
 
 const CHUNK_W = 10; // tiles wide
 const CHUNK_H = 10; // tiles tall
@@ -21,19 +19,12 @@ const CHUNK_H = 10; // tiles tall
 const COLS = Math.ceil(WORLD_W / CHUNK_W);
 const ROWS = Math.ceil(WORLD_H / CHUNK_H);
 
-// Tile IDs that should be rendered with the dirt/grass spritesheet
+// Tile IDs rendered with the dirt/grass tile image
 const DIRT_TILE_IDS = new Set([
   TILE_ID.SURFACE_DIRT,
   TILE_ID.EARTH,
   TILE_ID.CLAY,
 ]);
-
-// Simple deterministic hash for consistent random tile variant selection
-function tileHash(col, row) {
-  let h = col * 374761393 + row * 668265263;
-  h = (h ^ (h >> 13)) * 1274126177;
-  return (h ^ (h >> 16)) >>> 0;
-}
 
 export default class WorldRenderer {
   /**
@@ -41,118 +32,118 @@ export default class WorldRenderer {
    * @param {Uint8Array[]} map
    */
   constructor(scene, map) {
-    this.scene   = scene;
-    this.map     = map;
+    this.scene = scene;
+    this.map   = map;
 
-    // One RenderTexture per chunk
-    this.chunks  = []; // [chunkRow][chunkCol] = { rt, dirty }
+    // Get the raw HTMLImageElement from the loaded texture
+    this._srcImg = scene.textures.get('tiles-dirt-grass').getSourceImage();
 
-    // Temp graphics used to paint non-dirt tiles into RenderTextures
-    this._brush  = scene.add.graphics();
-    this._brush.setVisible(false);
+    // Pre-render each tile variant to its own TILE×TILE canvas so
+    // we can stamp them quickly into chunk canvases.
+    this._tileCanvases = this._buildTileCanvases();
 
-    // Temp image used to stamp tile sprites into RenderTextures
-    this._tileImg = scene.make.image({
-      key: 'tiles-dirt-grass',
-      frame: 'dirt_0',
-      add: false,
-    });
-    this._tileImg.setOrigin(0, 0);
-    this._tileImg.setDisplaySize(TILE, TILE);
+    // One CanvasTexture per chunk
+    this.chunks = []; // [chunkRow][chunkCol] = { ct, dirty }
 
     this._buildAllChunks();
   }
 
-  // ── Determine which sprite frame to use for a dirt/grass tile ──
-  _pickTileFrame(col, row) {
+  // ── Create pre-scaled TILE×TILE canvases for each tile variant ──
+  _buildTileCanvases() {
+    const src = this._srcImg;
+    const canvases = {};
+
+    // dirt_0 — plain underground dirt (first tile, top-left of sheet)
+    const d = TILE_SRC.dirt[0];
+    canvases.dirt = this._cropToCanvas(src, d.x, d.y, d.w, d.h);
+
+    // grass_top_0 — top surface tile with grass edge
+    const g = TILE_SRC.grassTop[0];
+    canvases.grassTop = this._cropToCanvas(src, g.x, g.y, g.w, g.h);
+
+    return canvases;
+  }
+
+  // Crop a region from srcImg and scale it to TILE×TILE on a new canvas
+  _cropToCanvas(srcImg, sx, sy, sw, sh) {
+    const canvas = document.createElement('canvas');
+    canvas.width  = TILE;
+    canvas.height = TILE;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(srcImg, sx, sy, sw, sh, 0, 0, TILE, TILE);
+    return canvas;
+  }
+
+  // ── Decide which pre-rendered canvas to use for a dirt/grass tile ──
+  _pickTileCanvas(col, row) {
     const above = row > 0 ? this.map[row - 1][col] : TILE_ID.AIR;
-    const left  = col > 0 ? this.map[row][col - 1] : TILE_ID.AIR;
-    const right = col < WORLD_W - 1 ? this.map[row][col + 1] : TILE_ID.AIR;
-
-    const airAbove = above === TILE_ID.AIR;
-    const airLeft  = left  === TILE_ID.AIR;
-    const airRight = right === TILE_ID.AIR;
-
-    if (airAbove && airLeft) return 'grass_corner_tl';
-    if (airAbove && airRight) return 'grass_corner_tr';
-    if (airAbove) {
-      const idx = tileHash(col, row) % 4;
-      return `grass_top_${idx}`;
+    if (above === TILE_ID.AIR) {
+      return this._tileCanvases.grassTop;
     }
-    if (airLeft) return 'grass_left';
-    if (airRight) return 'grass_right';
-
-    // Underground — pick a random dirt variant
-    const idx = tileHash(col, row) % 6;
-    return `dirt_${idx}`;
+    return this._tileCanvases.dirt;
   }
 
   _buildAllChunks() {
     for (let cr = 0; cr < ROWS; cr++) {
       this.chunks[cr] = [];
       for (let cc = 0; cc < COLS; cc++) {
-        const px = cc * CHUNK_W * TILE;
-        const py = cr * CHUNK_H * TILE;
+        const pxW = CHUNK_W * TILE;
+        const pxH = CHUNK_H * TILE;
 
-        const rt = this.scene.add.renderTexture(
-          px, py,
-          CHUNK_W * TILE,
-          CHUNK_H * TILE,
+        // Create a CanvasTexture for this chunk
+        const key = `chunk_${cr}_${cc}`;
+        const ct = this.scene.textures.createCanvas(key, pxW, pxH);
+
+        // Display it as an image in the scene
+        const img = this.scene.add.image(
+          cc * pxW, cr * pxH,
+          key
         );
-        rt.setOrigin(0, 0);
-        rt.setDepth(0);
+        img.setOrigin(0, 0);
+        img.setDepth(0);
 
-        this.chunks[cr][cc] = { rt, dirty: true };
+        this.chunks[cr][cc] = { ct, img, dirty: true };
       }
     }
     this._renderDirtyChunks();
   }
 
   _renderChunk(cr, cc) {
-    const { rt } = this.chunks[cr][cc];
+    const { ct } = this.chunks[cr][cc];
+    const ctx = ct.getContext();
     const startCol = cc * CHUNK_W;
     const startRow = cr * CHUNK_H;
 
-    this._brush.clear();
-
-    // Collect dirt/grass tile draws to batch after the brush
-    const tileToDraw = [];
+    // Clear the chunk canvas
+    ctx.clearRect(0, 0, CHUNK_W * TILE, CHUNK_H * TILE);
 
     for (let row = startRow; row < startRow + CHUNK_H && row < WORLD_H; row++) {
       for (let col = startCol; col < startCol + CHUNK_W && col < WORLD_W; col++) {
-        const id   = this.map[row][col];
-        const def  = TILE_DEF[id];
+        const id  = this.map[row][col];
+        const def = TILE_DEF[id];
         if (!def || def.color === null) continue; // AIR
 
         const lx = (col - startCol) * TILE;
         const ly = (row - startRow) * TILE;
 
         if (DIRT_TILE_IDS.has(id)) {
-          // Queue for sprite rendering
-          tileToDraw.push({ frame: this._pickTileFrame(col, row), lx, ly });
+          // Draw pre-cropped tile canvas (drawImage with source rect)
+          const tileCanvas = this._pickTileCanvas(col, row);
+          ctx.drawImage(tileCanvas, lx, ly);
         } else {
-          // Coloured rectangle (rock, bedrock, ruin wall, etc.)
-          this._brush.fillStyle(def.color, 1);
-          this._brush.fillRect(lx, ly, TILE - 1, TILE - 1);
+          // Coloured rectangle placeholder (rock, bedrock, ruin wall, etc.)
+          ctx.fillStyle = '#' + def.color.toString(16).padStart(6, '0');
+          ctx.fillRect(lx, ly, TILE - 1, TILE - 1);
 
-          // Subtle top-edge highlight (fake lighting)
-          this._brush.fillStyle(0xffffff, 0.07);
-          this._brush.fillRect(lx, ly, TILE - 1, Math.max(2, Math.round(TILE * 0.08)));
+          // Subtle top-edge highlight
+          ctx.fillStyle = 'rgba(255,255,255,0.07)';
+          ctx.fillRect(lx, ly, TILE - 1, Math.max(2, Math.round(TILE * 0.08)));
         }
       }
     }
 
-    rt.clear();
-
-    // Draw coloured-rectangle tiles first
-    rt.draw(this._brush, 0, 0);
-
-    // Draw dirt/grass sprite tiles
-    for (const { frame, lx, ly } of tileToDraw) {
-      this._tileImg.setFrame(frame);
-      rt.draw(this._tileImg, lx, ly);
-    }
-
+    ct.refresh();
     this.chunks[cr][cc].dirty = false;
   }
 
@@ -183,10 +174,9 @@ export default class WorldRenderer {
   destroy() {
     for (const row of this.chunks) {
       for (const chunk of row) {
-        chunk.rt.destroy();
+        chunk.img.destroy();
+        chunk.ct.destroy();
       }
     }
-    this._brush.destroy();
-    this._tileImg.destroy();
   }
 }
