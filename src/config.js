@@ -3,18 +3,18 @@
 //  All tuneable constants live here. Tweak freely.
 // ============================================================
 
-export const TILE = 16; // px per tile (world unit)
+export const TILE = 48; // px per tile (world unit) — 48 px for comfortable mobile tap targets
 
-// World dimensions in tiles
-export const WORLD_W = 300;  // columns
-export const WORLD_H = 600;  // rows  — tall like Terraria
+// World dimensions in tiles (scaled down to keep ~same pixel dimensions as before)
+export const WORLD_W = 100;  // columns  (100 × 48 = 4800 px)
+export const WORLD_H = 200;  // rows     (200 × 48 = 9600 px)
 
 // Layer boundaries (row indices, top = 0)
 export const LAYER = {
   SKY_TOP:        0,
-  SURFACE_TOP:    60,   // wasteland dirt begins
-  UNDERGROUND_TOP:120,  // dense earth begins
-  DEEP_TOP:       300,  // hard bedrock / deep rock begins
+  SURFACE_TOP:    20,   // wasteland dirt begins
+  UNDERGROUND_TOP:40,   // dense earth begins
+  DEEP_TOP:       100,  // hard bedrock / deep rock begins
   BOTTOM:         WORLD_H,
 };
 
@@ -48,23 +48,23 @@ export const TILE_DEF = {
 
 // ── Starting Outpost layout constants ────────────────────────
 export const STARTING_OUTPOST = {
-  PLATEAU_W:     44,   // total flat plateau width in tiles (≥40)
-  PLATEAU_DEPTH: 10,   // solid fill depth below surface
-  HILL_W:         8,   // hill width in tiles
-  HILL_H:         6,   // hill height above plateau surface
-  SHELTER_W:     16,   // total shelter width  (2 wall + 12 interior + 2 wall)
-  WALL_THICK:     2,   // wall thickness in tiles
-  WALL_H:         6,   // interior height in tiles (colonist=2 + 4 headroom)
-  INTERIOR_W:    12,   // interior floor width
-  DOORWAY_W:      2,   // doorway opening width (matches wall thickness)
-  ROOF_THICK:     2,   // roof thickness in tiles (solid slab)
-  SPAWN_OFFSET:  16,   // colonist spawn column offset from plateau left edge
-  BUILDING_GAP:  10,   // tiles from colonist spawn to building left wall
+  PLATEAU_W:     15,   // total flat plateau width in tiles
+  PLATEAU_DEPTH:  3,   // solid fill depth below surface
+  HILL_W:         3,   // hill width in tiles
+  HILL_H:         2,   // hill height above plateau surface
+  SHELTER_W:      6,   // total shelter width  (1 wall + 4 interior + 1 wall)
+  WALL_THICK:     1,   // wall thickness in tiles
+  WALL_H:         3,   // interior height in tiles (colonist=2 + 1 headroom)
+  INTERIOR_W:     4,   // interior floor width
+  DOORWAY_W:      1,   // doorway opening width
+  ROOF_THICK:     1,   // roof thickness in tiles (solid slab)
+  SPAWN_OFFSET:   5,   // colonist spawn column offset from plateau left edge
+  BUILDING_GAP:   3,   // tiles from colonist spawn to building left wall
 };
 
 // Physics
-export const GRAVITY      = 800;  // px/s²
-export const COLONIST_SPD = 80;   // px/s walk speed
+export const GRAVITY      = 2400; // px/s² (scaled with tile size for consistent feel)
+export const COLONIST_SPD = 240;  // px/s walk speed (scaled with tile size)
 
 // Needs decay rates (units per second, max = 100)
 export const HUNGER_DECAY = 1.5;

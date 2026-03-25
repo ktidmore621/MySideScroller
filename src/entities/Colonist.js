@@ -127,7 +127,7 @@ export default class Colonist {
   _doWander(dt) {
     this.wanderTimer -= dt;
     const dx = this.targetX - this.x;
-    if (Math.abs(dx) < 4 || this.wanderTimer <= 0) {
+    if (Math.abs(dx) < TILE * 0.25 || this.wanderTimer <= 0) {
       this._pickWanderTarget();
     } else {
       this.vx = Math.sign(dx) * COLONIST_SPD * 0.6;
@@ -353,13 +353,16 @@ export default class Colonist {
     this.gfx.fillRect(this.x - hw, this.y - hh, this.w, this.h);
 
     // Visor strip
+    const vi = Math.round(TILE * 0.12);          // inset from edge
+    const vh = Math.round(TILE * 0.3);           // visor height
     this.gfx.fillStyle(0x88ccdd, 0.8);
-    this.gfx.fillRect(this.x - hw + 2, this.y - hh + 2, this.w - 4, 5);
+    this.gfx.fillRect(this.x - hw + vi, this.y - hh + vi, this.w - vi * 2, vh);
 
     // Legs
+    const legH = Math.round(TILE * 0.3);
     this.gfx.fillStyle(0x2a3c1a, 1);
-    this.gfx.fillRect(this.x - hw,  this.y + hh - 5, this.w / 2 - 1, 5);
-    this.gfx.fillRect(this.x + 1,   this.y + hh - 5, this.w / 2 - 1, 5);
+    this.gfx.fillRect(this.x - hw,  this.y + hh - legH, this.w / 2 - 1, legH);
+    this.gfx.fillRect(this.x + 1,   this.y + hh - legH, this.w / 2 - 1, legH);
   }
 
   // ── Draw mining progress bar above the tile being mined ────
@@ -372,7 +375,7 @@ export default class Colonist {
     const tileY = this.targetRow * TILE;
 
     const barW = TILE;
-    const barH = 3;
+    const barH = Math.max(3, Math.round(TILE * 0.15));
     const barX = tileX;
     const barY = tileY - barH - 2; // above the tile
     const progress = Math.min(1, this.miningProgress / this.miningDuration);
