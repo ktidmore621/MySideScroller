@@ -140,13 +140,13 @@ export const BUILDING_TILE_SRC = {
 
 // Map building TILE_IDs → source rect keys
 export const BLDG_TILE_TO_SRC = {
-  [TILE_ID.BLDG_CORNER_TL]: 'cornerTL',
-  [TILE_ID.BLDG_CORNER_TR]: 'cornerTR',
-  [TILE_ID.BLDG_CORNER_BR]: 'cornerBR',
-  [TILE_ID.BLDG_CORNER_BL]: 'cornerBL',
+  [TILE_ID.BLDG_CORNER_TL]: 'cornerTR',     // T7 — finished top + left edges
+  [TILE_ID.BLDG_CORNER_TR]: 'cornerTL',     // T6 — finished top + right edges
+  [TILE_ID.BLDG_CORNER_BR]: 'cornerBL',     // T9 — finished bottom + right edges
+  [TILE_ID.BLDG_CORNER_BL]: 'cornerBR',     // T8 — finished bottom + left edges
   [TILE_ID.BLDG_TOP_CAP]:   'outerWallTopCap',
-  [TILE_ID.BLDG_LEFT_CAP]:  'outerRightCap',   // T4 (x:659) is the left-facing finished edge
-  [TILE_ID.BLDG_RIGHT_CAP]: 'outerLeftCap',    // T5 (x:847) is the right-facing finished edge
+  [TILE_ID.BLDG_LEFT_CAP]:  'outerLeftCap',    // T5 — left finished edge
+  [TILE_ID.BLDG_RIGHT_CAP]: 'outerRightCap',   // T4 — right finished edge
   [TILE_ID.BLDG_INTERIOR]:  'outerWallStd',
   [TILE_ID.RUIN_WALL]:      'outerWallStd',  // fallback for any remaining generic wall
 };

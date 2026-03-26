@@ -242,19 +242,11 @@ export function generateWorld(seed = 42) {
   }
 
   // 4b. Place LEFT wall (doorway facing colonist — open interior height)
+  //     The entire left column is the doorway: AIR from interiorTop
+  //     all the way down through wallBot so nothing renders there.
   for (let y = roofBot + 1; y <= wallBot; y++) {
     for (let x = shelterLeft; x < shelterLeft + WALL_THICK; x++) {
-      const inDoorway = y >= interiorTop && y <= interiorBot;
-      if (!inDoorway) {
-        // Bottom-left corner on the floor row
-        if (y === wallBot) {
-          map[y][x] = TILE_ID.BLDG_CORNER_BL;
-        } else {
-          map[y][x] = TILE_ID.BLDG_LEFT_CAP;
-        }
-      } else {
-        map[y][x] = TILE_ID.AIR; // doorway
-      }
+      map[y][x] = TILE_ID.AIR; // doorway — completely open
     }
   }
 
